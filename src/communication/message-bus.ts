@@ -13,6 +13,7 @@ import {
 } from '../swarm/types.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface MessageBusConfig {
   strategy: CommunicationStrategy;
   enablePersistence: boolean;
@@ -276,11 +277,11 @@ export class MessageBus extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    this.eventBus.on('agent:connected', (data) => {
+    this.eventBus.on('agent:connected', (data: any) => {
       this.handleAgentConnected(data.agentId);
     });
 
-    this.eventBus.on('agent:disconnected', (data) => {
+    this.eventBus.on('agent:disconnected', (data: any) => {
       this.handleAgentDisconnected(data.agentId);
     });
 
@@ -778,12 +779,12 @@ export class MessageBus extends EventEmitter {
       await this.deliveryManager.deliver(message, target);
       this.metrics.recordDeliverySuccess(message);
       
-    } catch (error) {
+    } catch (err) {
       this.metrics.recordDeliveryFailure(message);
       
       // Handle delivery failure based on reliability level
       if (message.reliability !== 'best-effort') {
-        await this.retryManager.scheduleRetry(message, target, error);
+        await this.retryManager.scheduleRetry(message, target, err);
       }
     }
   }
@@ -965,11 +966,11 @@ export class MessageBus extends EventEmitter {
         await this.acknowledgeMessage(message.id, subscriber.agent);
       }
 
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Failed to deliver message to subscriber', {
         messageId: message.id,
         subscriberId: subscriber.id,
-        error
+        err
       });
     }
   }
@@ -1123,12 +1124,12 @@ export class MessageBus extends EventEmitter {
       
       await this.enqueueMessage(queueId, message);
       
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Failed to send message to dead letter queue', {
         messageId: message.id,
         queueId,
         reason,
-        error
+        err
       });
     }
   }
@@ -1367,12 +1368,12 @@ class RetryManager extends EventEmitter {
           // Remove from retry queue on success
           this.retryQueue = this.retryQueue.filter(r => r !== entry);
           
-        } catch (error) {
+        } catch (err) {
           // Keep in retry queue for next attempt
           this.logger.warn('Retry attempt failed', {
             messageId: entry.message.id,
             attempt: entry.attempts,
-            error: error.message
+            error: getErrorMessage(err)
           });
         }
       }

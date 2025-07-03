@@ -32,6 +32,7 @@ import { createSwarmTools, SwarmToolContext } from './swarm-tools.js';
 import { platform, arch } from 'node:os';
 import { performance } from 'node:perf_hooks';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface IMCPServer {
   start(): Promise<void>;
   stop(): Promise<void>;
@@ -142,9 +143,9 @@ export class MCPServer implements IMCPServer {
 
       this.running = true;
       this.logger.info('MCP server started successfully');
-    } catch (error) {
-      this.logger.error('Failed to start MCP server', error);
-      throw new MCPErrorClass('Failed to start MCP server', { error });
+    } catch (err) {
+      this.logger.error('Failed to start MCP server', err);
+      throw new MCPErrorClass('Failed to start MCP server', { err });
     }
   }
 
@@ -172,9 +173,9 @@ export class MCPServer implements IMCPServer {
       this.running = false;
       this.currentSession = undefined;
       this.logger.info('MCP server stopped');
-    } catch (error) {
-      this.logger.error('Error stopping MCP server', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Error stopping MCP server', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -222,10 +223,10 @@ export class MCPServer implements IMCPServer {
         status.error = transportHealth.error;
       }
       return status;
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }
@@ -326,24 +327,24 @@ export class MCPServer implements IMCPServer {
         }
 
         return response;
-      } catch (error) {
+      } catch (err) {
         // Record failure
         if (requestMetrics) {
-          this.loadBalancer?.recordRequestEnd(requestMetrics, undefined, error as Error);
+          this.loadBalancer?.recordRequestEnd(requestMetrics, undefined, err as Error);
         }
-        throw error;
+        throw new Error(getErrorMessage(err));
       }
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Error handling MCP request', { 
         id: request.id,
         method: request.method,
-        error,
+        err,
       });
 
       return {
         jsonrpc: '2.0',
         id: request.id,
-        error: this.errorToMCPError(error),
+        error: this.errorToMCPError(err),
       };
     }
   }
@@ -389,12 +390,12 @@ export class MCPServer implements IMCPServer {
         id: request.id,
         result,
       };
-    } catch (error) {
-      this.logger.error('Error during initialization', error);
+    } catch (err) {
+      this.logger.error('Error during initialization', err);
       return {
         jsonrpc: '2.0',
         id: request.id,
-        error: this.errorToMCPError(error),
+        error: this.errorToMCPError(err),
       };
     }
   }

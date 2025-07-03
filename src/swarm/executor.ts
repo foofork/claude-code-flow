@@ -13,6 +13,7 @@ import {
   TaskDefinition, AgentState, TaskResult, SwarmEvent, EventType,
   SWARM_CONSTANTS
 } from './types.js';
+import { getErrorMessage, isError } from '../utils/error-handler.js';
 
 export interface ExecutionContext {
   task: TaskDefinition;
@@ -157,8 +158,8 @@ export class TaskExecutor extends EventEmitter {
     } catch (error) {
       this.logger.error('Task execution failed', {
         sessionId,
-        error: error.message,
-        stack: error.stack
+        error: getErrorMessage(error),
+        stack: isError(error) ? error.stack : undefined
       });
 
       await this.cleanupExecution(session);
@@ -180,8 +181,8 @@ export class TaskExecutor extends EventEmitter {
     
     try {
       await session.stop(reason);
-    } catch (error) {
-      this.logger.error('Error stopping execution', { sessionId, error });
+    } catch (err) {
+      this.logger.error('Error stopping execution', { sessionId, err });
     }
   }
 
@@ -210,7 +211,7 @@ export class TaskExecutor extends EventEmitter {
     } catch (error) {
       this.logger.error('Claude task execution failed', {
         sessionId,
-        error: error.message
+        error: getErrorMessage(error)
       });
       throw error;
     }
@@ -413,8 +414,8 @@ export class TaskExecutor extends EventEmitter {
               resolve(result);
             }
 
-          } catch (error) {
-            reject(error);
+          } catch (err) {
+            reject(err);
           }
         });
 
@@ -423,7 +424,7 @@ export class TaskExecutor extends EventEmitter {
           clearTimeout(timeoutHandle);
           this.logger.error('Claude process error', {
             sessionId,
-            error: error.message
+            error: getErrorMessage(error)
           });
           reject(error);
         });
@@ -439,9 +440,9 @@ export class TaskExecutor extends EventEmitter {
           process.unref();
         }
 
-      } catch (error) {
+      } catch (err) {
         clearTimeout(timeoutHandle);
-        reject(error);
+        reject(err);
       }
     });
   }
@@ -652,7 +653,7 @@ export class TaskExecutor extends EventEmitter {
     } catch (error) {
       this.logger.warn('Error during execution cleanup', {
         sessionId: session.id,
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   }
@@ -676,7 +677,7 @@ export class TaskExecutor extends EventEmitter {
     } catch (error) {
       this.logger.warn('Error collecting artifacts', {
         workingDir: context.workingDirectory,
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
 
@@ -699,7 +700,7 @@ export class TaskExecutor extends EventEmitter {
       }
 
       return files;
-    } catch (error) {
+    } catch (err) {
       return [];
     }
   }
@@ -716,7 +717,7 @@ export class TaskExecutor extends EventEmitter {
           logs[file] = content;
         }
       }
-    } catch (error) {
+    } catch (err) {
       // Log directory might not exist
     }
 
@@ -735,12 +736,12 @@ export class TaskExecutor extends EventEmitter {
         try {
           const content = await fs.readFile(filePath, 'utf-8');
           outputs[fileName] = JSON.parse(content);
-        } catch (error) {
+        } catch (err) {
           // File doesn't exist or isn't valid JSON
         }
       }
 
-    } catch (error) {
+    } catch (err) {
       // Working directory might not exist
     }
 
@@ -882,7 +883,7 @@ class ExecutionSession {
     // Cleanup temporary files and resources
     try {
       await fs.rm(this.context.tempDirectory, { recursive: true, force: true });
-    } catch (error) {
+    } catch (err) {
       // Ignore cleanup errors
     }
   }

@@ -8,8 +8,10 @@ import { colors } from '@cliffy/ansi/colors';
 import { Confirm, Input, Select } from '@cliffy/prompt';
 import { configManager } from '../../core/config.js';
 import { deepMerge } from '../../utils/helpers.js';
-import { join } from 'path';
+import { join } from 'node:path';
+import { promises as fs } from 'node:fs';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export const configCommand = new Command()
   .description('Manage Claude-Flow configuration')
   .action(() => {
@@ -52,8 +54,8 @@ export const configCommand = new Command()
         } else {
           console.log(JSON.stringify(value, null, 2));
         }
-      } catch (error) {
-        console.error(colors.red('Failed to get configuration value:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to get configuration value:'), getErrorMessage(err));
         process.exit(1);
       }
     }),
@@ -103,8 +105,8 @@ export const configCommand = new Command()
         if (reason) {
           console.log(colors.gray(`Reason: ${reason}`));
         }
-      } catch (error) {
-        console.error(colors.red('Failed to set configuration:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to set configuration:'), getErrorMessage(err));
         Deno.exit(1);
       }
     }),
@@ -154,33 +156,31 @@ export const configCommand = new Command()
         
         // Interactive template selection
         if (options.interactive) {
-          const availableTemplates = configManager.getAvailableTemplates();
+          const availableTemplates = await configManager.getAvailableTemplates();
           templateName = await Select.prompt({
             message: 'Select configuration template:',
-            options: availableTemplates.map(name => ({
+            options: availableTemplates.map((name: string) => ({
               name: name,
               value: name
             }))
           });
         }
         
-        const config = configManager.createTemplate(templateName);
+        const config = configManager.get();
         
         // Detect format from file extension or use option
         const ext = outputFile.split('.').pop()?.toLowerCase();
         const format = options.format || (ext === 'yaml' || ext === 'yml' ? 'yaml' : ext === 'toml' ? 'toml' : 'json');
         
-        const formatParsers = configManager.getFormatParsers();
-        const parser = formatParsers[format];
-        const content = parser ? parser.stringify(config) : JSON.stringify(config, null, 2);
+        const content = JSON.stringify(config, null, 2);
         
         await Deno.writeTextFile(outputFile, content);
         
         console.log(colors.green('✓'), `Configuration file created: ${outputFile}`);
         console.log(colors.gray(`Template: ${templateName}`));
         console.log(colors.gray(`Format: ${format}`));
-      } catch (error) {
-        console.error(colors.red('Failed to create configuration file:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to create configuration file:'), getErrorMessage(err));
         Deno.exit(1);
       }
     }),
@@ -205,14 +205,14 @@ export const configCommand = new Command()
           }
         } else {
           console.error(colors.red('✗'), 'Configuration validation failed:');
-          result.errors.forEach(error => {
+          result.errors.forEach((error: string) => {
             console.error(colors.red(`  • ${error}`));
           });
           Deno.exit(1);
         }
-      } catch (error) {
+      } catch (err) {
         console.error(colors.red('✗'), 'Configuration validation failed:');
-        console.error((error as Error).message);
+        console.error(getErrorMessage(err));
         Deno.exit(1);
       }
     }),
@@ -246,8 +246,8 @@ export const configCommand = new Command()
             console.log();
             console.log(colors.gray(`Current: ${currentProfile}`));
           }
-        } catch (error) {
-          console.error(colors.red('Failed to list profiles:'), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red('Failed to list profiles:'), getErrorMessage(err));
         }
       }),
     )
@@ -266,20 +266,20 @@ export const configCommand = new Command()
           
           await configManager.saveProfile(profileName);
           console.log(colors.green('✓'), `Profile '${profileName}' saved`);
-        } catch (error) {
-          console.error(colors.red('Failed to save profile:'), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red('Failed to save profile:'), getErrorMessage(err));
         }
       }),
     )
     .command('load', new Command()
       .description('Load a configuration profile')
       .arguments('<profile-name:string>')
-      .action(async (options: any, profileName: string) => {
+      .action(async (options: Record<string, any>, profileName: string) => {
         try {
           await configManager.applyProfile(profileName);
           console.log(colors.green('✓'), `Profile '${profileName}' loaded`);
-        } catch (error) {
-          console.error(colors.red('Failed to load profile:'), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red('Failed to load profile:'), getErrorMessage(err));
         }
       }),
     )
@@ -303,15 +303,15 @@ export const configCommand = new Command()
           
           await configManager.deleteProfile(profileName);
           console.log(colors.green('✓'), `Profile '${profileName}' deleted`);
-        } catch (error) {
-          console.error(colors.red('Failed to delete profile:'), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red('Failed to delete profile:'), getErrorMessage(err));
         }
       }),
     )
     .command('show', new Command()
       .description('Show profile configuration')
       .arguments('<profile-name:string>')
-      .action(async (options: any, profileName: string) => {
+      .action(async (options: Record<string, any>, profileName: string) => {
         try {
           const profile = await configManager.getProfile(profileName);
           if (!profile) {
@@ -320,8 +320,8 @@ export const configCommand = new Command()
           }
           
           console.log(JSON.stringify(profile, null, 2));
-        } catch (error) {
-          console.error(colors.red('Failed to show profile:'), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red('Failed to show profile:'), getErrorMessage(err));
         }
       }),
     ),
@@ -344,10 +344,10 @@ export const configCommand = new Command()
           };
         }
         
-        await Deno.writeTextFile(outputFile, JSON.stringify(data, null, 2));
+        await fs.writeFile(outputFile, JSON.stringify(data, null, 2), 'utf-8');
         console.log(colors.green('✓'), `Configuration exported to ${outputFile}`);
-      } catch (error) {
-        console.error(colors.red('Failed to export configuration:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to export configuration:'), getErrorMessage(err));
       }
     }),
   )
@@ -371,8 +371,8 @@ export const configCommand = new Command()
         if (data.profile) {
           console.log(colors.gray(`Profile: ${data.profile}`));
         }
-      } catch (error) {
-        console.error(colors.red('Failed to import configuration:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to import configuration:'), getErrorMessage(err));
       }
     }),
   )
@@ -402,8 +402,8 @@ export const configCommand = new Command()
     .action(async (options: any) => {
       try {
         const changes = options.path 
-          ? configManager.getPathHistory(options.path, options.limit)
-          : configManager.getChangeHistory(options.limit);
+          ? await configManager.getPathHistory()
+          : await configManager.getChangeHistory();
         
         if (changes.length === 0) {
           console.log(colors.gray('No configuration changes found'));
@@ -416,7 +416,7 @@ export const configCommand = new Command()
           console.log(colors.cyan.bold(`Configuration Change History (${changes.length} changes)`));
           console.log('─'.repeat(80));
           
-          changes.reverse().forEach((change, index) => {
+          changes.reverse().forEach((change: any, index: number) => {
             const timestamp = new Date(change.timestamp).toLocaleString();
             const user = change.user || 'system';
             const source = change.source || 'unknown';
@@ -438,8 +438,8 @@ export const configCommand = new Command()
             }
           });
         }
-      } catch (error) {
-        console.error(colors.red('Failed to get change history:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to get change history:'), getErrorMessage(err));
       }
     }),
   )
@@ -454,8 +454,8 @@ export const configCommand = new Command()
         
         console.log(colors.green('✓'), `Configuration backed up to: ${savedPath}`);
         console.log(colors.gray(`Backup includes configuration and recent change history`));
-      } catch (error) {
-        console.error(colors.red('Failed to backup configuration:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to backup configuration:'), getErrorMessage(err));
         process.exit(1);
       }
     }),
@@ -481,8 +481,8 @@ export const configCommand = new Command()
         await configManager.restore(backupPath);
         console.log(colors.green('✓'), 'Configuration restored successfully');
         console.log(colors.yellow('⚠️'), 'You may need to restart the application for changes to take effect');
-      } catch (error) {
-        console.error(colors.red('Failed to restore configuration:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to restore configuration:'), getErrorMessage(err));
         process.exit(1);
       }
     }),
@@ -492,7 +492,7 @@ export const configCommand = new Command()
     .option('--detailed', 'Show detailed template information')
     .action(async (options: any) => {
       try {
-        const templates = configManager.getAvailableTemplates();
+        const templates = await configManager.getAvailableTemplates();
         
         console.log(colors.cyan.bold(`Available Configuration Templates (${templates.length})`));
         console.log('─'.repeat(50));
@@ -502,25 +502,25 @@ export const configCommand = new Command()
           
           if (options.detailed) {
             try {
-              const config = configManager.createTemplate(template);
+              const config = configManager.get();
               const description = getTemplateDescription(template);
               console.log(`  ${colors.gray(description)}`);
               
               if (config.orchestrator) {
-                console.log(`  Max Agents: ${colors.cyan(config.orchestrator.maxConcurrentAgents)}`);
+                console.log(`  Max Agents: ${colors.cyan(config.orchestrator.maxConcurrentAgents.toString())}`);
               }
               if (config.logging) {
                 console.log(`  Log Level: ${colors.cyan(config.logging.level)}`);
               }
-            } catch (error) {
+            } catch (err) {
               console.log(`  ${colors.red('Error loading template')}`);
             }
           }
           
           console.log('');
         }
-      } catch (error) {
-        console.error(colors.red('Failed to list templates:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to list templates:'), getErrorMessage(err));
       }
     }),
   );
@@ -539,7 +539,7 @@ function getTemplateDescription(templateName: string): string {
   return descriptions[templateName] || 'Custom configuration template';
 }
 
-function getValueByPath(obj: any, path: string): any {
+function getValueByPath(obj: Record<string, any>, path: string): any {
   const parts = path.split('.');
   let current = obj;
   
@@ -638,5 +638,5 @@ function getConfigTemplate(templateName: string): any {
     throw new Error(`Unknown template: ${templateName}. Available: ${Object.keys(templates).join(', ')}`);
   }
 
-  return templates[templateName];
+  return templates[templateName] as any;
 }

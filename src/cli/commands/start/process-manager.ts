@@ -20,6 +20,7 @@ import { eventBus } from '../../../core/event-bus.js';
 import { logger } from '../../../core/logger.js';
 import { configManager } from '../../../core/config.js';
 
+import { getErrorMessage } from '../../../utils/error-handler.js';
 export class ProcessManager extends EventEmitter {
   private processes: Map<string, ProcessInfo> = new Map();
   private orchestrator: Orchestrator | undefined;
@@ -84,9 +85,9 @@ export class ProcessManager extends EventEmitter {
     try {
       this.config = await configManager.load(configPath);
       this.emit('initialized', { config: this.config });
-    } catch (error) {
-      this.emit('error', { component: 'ProcessManager', error });
-      throw error;
+    } catch (err) {
+      this.emit('err', { component: 'ProcessManager', err });
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -168,14 +169,14 @@ export class ProcessManager extends EventEmitter {
       this.updateProcessStatus(processId, ProcessStatus.RUNNING);
       this.emit('processStarted', { processId, process });
 
-    } catch (error) {
+    } catch (err) {
       this.updateProcessStatus(processId, ProcessStatus.ERROR);
       process.metrics = {
         ...process.metrics,
-        lastError: (error as Error).message
+        lastError: getErrorMessage(err)
       };
-      this.emit('processError', { processId, error });
-      throw error;
+      this.emit('processError', { processId, err });
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -228,10 +229,10 @@ export class ProcessManager extends EventEmitter {
       this.updateProcessStatus(processId, ProcessStatus.STOPPED);
       this.emit('processStopped', { processId });
 
-    } catch (error) {
+    } catch (err) {
       this.updateProcessStatus(processId, ProcessStatus.ERROR);
-      this.emit('processError', { processId, error });
-      throw error;
+      this.emit('processError', { processId, err });
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -255,8 +256,8 @@ export class ProcessManager extends EventEmitter {
     for (const processId of startOrder) {
       try {
         await this.startProcess(processId);
-      } catch (error) {
-        console.error(colors.red(`Failed to start ${processId}:`), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red(`Failed to start ${processId}:`), getErrorMessage(err));
         // Continue with other processes
       }
     }
@@ -278,8 +279,8 @@ export class ProcessManager extends EventEmitter {
       if (process && process.status === ProcessStatus.RUNNING) {
         try {
           await this.stopProcess(processId);
-        } catch (error) {
-          console.error(colors.red(`Failed to stop ${processId}:`), (error as Error).message);
+        } catch (err) {
+          console.error(colors.red(`Failed to stop ${processId}:`), getErrorMessage(err));
         }
       }
     }

@@ -9,6 +9,7 @@ import { ILogger } from '../core/logger.js';
 import { IEventBus } from '../core/event-bus.js';
 import { CircuitBreaker, CircuitBreakerManager } from './circuit-breaker.js';
 import { generateId } from '../utils/helpers.js';
+import { getErrorMessage, isError } from '../utils/error-handler.js';
 
 export interface TaskExecutorConfig {
   maxConcurrentTasks: number;
@@ -214,15 +215,15 @@ export class AdvancedTaskExecutor extends EventEmitter {
           taskId: task.id.id,
           attempt: retryCount,
           maxRetries,
-          error: error.message
+          error: getErrorMessage(error)
         });
 
         // Check if we should retry
         if (retryCount > maxRetries) {
           const taskError: TaskError = {
             type: 'execution_failed',
-            message: error.message,
-            stack: error.stack,
+            message: getErrorMessage(error),
+            stack: isError(error) ? error.stack : undefined,
             context: {
               retryCount,
               maxRetries,
@@ -397,7 +398,7 @@ export class AdvancedTaskExecutor extends EventEmitter {
           resourcesUsed: context.resources,
           validated: false
         };
-      } catch (error) {
+      } catch (err) {
         taskResult = {
           output: stdout,
           artifacts: {},
@@ -501,7 +502,7 @@ export class AdvancedTaskExecutor extends EventEmitter {
         } catch (error) {
           this.logger.warn('Failed to get resource usage', {
             taskId,
-            error: error.message
+            error: getErrorMessage(error)
           });
         }
       }

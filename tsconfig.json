@@ -36,6 +36,15 @@
   "include": [
     "src/**/*"
   ],
+  "files": [
+    "src/types/global.d.ts",
+    "src/types/ambient.d.ts",
+    "src/types/cliffy.d.ts",
+    "src/types/modules.d.ts",
+    "src/types/extensions.d.ts",
+    "src/types/enterprise.d.ts",
+    "src/types/swarm-extensions.d.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",

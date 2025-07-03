@@ -3,13 +3,14 @@
  * Handles non-blocking file operations with queuing
  */
 
-import { promises as fs } from 'node:fs';
+import { promises as fs, createWriteStream, createReadStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
-import { createWriteStream, createReadStream, Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 import { join, dirname } from 'node:path';
 import PQueue from 'p-queue';
 import { Logger } from '../../core/logger.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export interface FileOperationResult {
   path: string;
   operation: 'read' | 'write' | 'delete' | 'mkdir';
@@ -71,16 +72,16 @@ export class AsyncFileManager {
           duration,
           size
         };
-      } catch (error) {
+      } catch (err) {
         this.metrics.errors++;
-        this.logger.error('Failed to write file', { path, error });
+        this.logger.error('Failed to write file', { path, err });
         
         return {
           path,
           operation: 'write',
           success: false,
           duration: Date.now() - start,
-          error: error as Error
+          error: err as Error
         };
       }
     });
@@ -105,16 +106,16 @@ export class AsyncFileManager {
           size,
           data
         };
-      } catch (error) {
+      } catch (err) {
         this.metrics.errors++;
-        this.logger.error('Failed to read file', { path, error });
+        this.logger.error('Failed to read file', { path, err });
         
         return {
           path,
           operation: 'read' as const,
           success: false,
           duration: Date.now() - start,
-          error: error as Error
+          error: err as Error
         };
       }
     });
@@ -135,7 +136,7 @@ export class AsyncFileManager {
       try {
         const parsed = JSON.parse(result.data);
         return { ...result, data: parsed };
-      } catch (error) {
+      } catch (err) {
         return {
           ...result,
           success: false,
@@ -162,16 +163,16 @@ export class AsyncFileManager {
           success: true,
           duration: Date.now() - start
         };
-      } catch (error) {
+      } catch (err) {
         this.metrics.errors++;
-        this.logger.error('Failed to delete file', { path, error });
+        this.logger.error('Failed to delete file', { path, err });
         
         return {
           path,
           operation: 'delete',
           success: false,
           duration: Date.now() - start,
-          error: error as Error
+          error: err as Error
         };
       }
     });
@@ -191,16 +192,16 @@ export class AsyncFileManager {
         success: true,
         duration: Date.now() - start
       };
-    } catch (error) {
+    } catch (err) {
       this.metrics.errors++;
-      this.logger.error('Failed to create directory', { path, error });
+      this.logger.error('Failed to create directory', { path, err });
       
       return {
         path,
         operation: 'mkdir',
         success: false,
         duration: Date.now() - start,
-        error: error as Error
+        error: err as Error
       };
     }
   }
@@ -239,16 +240,16 @@ export class AsyncFileManager {
           duration: Date.now() - start,
           size: stats.size
         };
-      } catch (error) {
+      } catch (err) {
         this.metrics.errors++;
-        this.logger.error('Failed to copy file', { source, destination, error });
+        this.logger.error('Failed to copy file', { source, destination, err });
         
         return {
           path: destination,
           operation: 'write',
           success: false,
           duration: Date.now() - start,
-          error: error as Error
+          error: err as Error
         };
       }
     });

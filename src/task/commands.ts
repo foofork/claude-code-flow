@@ -8,6 +8,7 @@ import chalk from 'chalk';
 import { TaskEngine, WorkflowTask, TaskFilter, TaskSort, Workflow, ResourceRequirement, TaskSchedule } from './engine.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface TaskCommandContext {
   taskEngine: TaskEngine;
   memoryManager?: any;
@@ -182,8 +183,8 @@ export function createTaskCreateCommand(context: TaskCommandContext): Command {
 
         console.log(chalk.blue(`\n💡 Use 'task status ${task.id}' to monitor progress`));
 
-      } catch (error) {
-        console.error(chalk.red('❌ Error creating task:'), error instanceof Error ? error.message : error);
+      } catch (err) {
+        console.error(chalk.red('❌ Error creating task:'), err instanceof Error ? getErrorMessage(err) : err);
       }
     });
 }
@@ -297,8 +298,8 @@ export function createTaskListCommand(context: TaskCommandContext): Command {
           console.log(chalk.blue(`\n💡 Use --offset ${parseInt(options.offset) + parseInt(options.limit)} to see more results`));
         }
 
-      } catch (error) {
-        console.error(chalk.red('❌ Error listing tasks:'), error instanceof Error ? error.message : error);
+      } catch (err) {
+        console.error(chalk.red('❌ Error listing tasks:'), err instanceof Error ? getErrorMessage(err) : err);
       }
     });
 }
@@ -474,8 +475,8 @@ export function createTaskStatusCommand(context: TaskCommandContext): Command {
           await displayStatus();
         }
 
-      } catch (error) {
-        console.error(chalk.red('❌ Error getting task status:'), error instanceof Error ? error.message : error);
+      } catch (err) {
+        console.error(chalk.red('❌ Error getting task status:'), err instanceof Error ? getErrorMessage(err) : err);
       }
     });
 }
@@ -567,14 +568,14 @@ export function createTaskCancelCommand(context: TaskCommandContext): Command {
             try {
               await context.taskEngine.cancelTask(dep.id, `Parent task ${taskId} was cancelled`);
               console.log(chalk.green(`  ✅ Cancelled: ${dep.id}`));
-            } catch (error) {
-              console.log(chalk.red(`  ❌ Failed to cancel: ${dep.id} - ${error}`));
+            } catch (err) {
+              console.log(chalk.red(`  ❌ Failed to cancel: ${dep.id} - ${getErrorMessage(err)}`));
             }
           }
         }
 
-      } catch (error) {
-        console.error(chalk.red('❌ Error cancelling task:'), error instanceof Error ? error.message : error);
+      } catch (err) {
+        console.error(chalk.red('❌ Error cancelling task:'), err instanceof Error ? getErrorMessage(err) : err);
       }
     });
 }
@@ -628,8 +629,8 @@ export function createTaskWorkflowCommand(context: TaskCommandContext): Command 
             console.log(chalk.cyan(`⚡ Max concurrent: ${workflow.parallelism.maxConcurrent}`));
             console.log(chalk.cyan(`🎯 Strategy: ${workflow.parallelism.strategy}`));
 
-          } catch (error) {
-            console.error(chalk.red('❌ Error creating workflow:'), error instanceof Error ? error.message : error);
+          } catch (err) {
+            console.error(chalk.red('❌ Error creating workflow:'), err instanceof Error ? getErrorMessage(err) : err);
           }
         })
     )
@@ -659,8 +660,8 @@ export function createTaskWorkflowCommand(context: TaskCommandContext): Command 
 
             console.log(chalk.green('✅ Workflow execution started'));
 
-          } catch (error) {
-            console.error(chalk.red('❌ Error executing workflow:'), error instanceof Error ? error.message : error);
+          } catch (err) {
+            console.error(chalk.red('❌ Error executing workflow:'), err instanceof Error ? getErrorMessage(err) : err);
           }
         })
     )
@@ -689,8 +690,8 @@ export function createTaskWorkflowCommand(context: TaskCommandContext): Command 
               displayDependencyGraph(graph);
             }
 
-          } catch (error) {
-            console.error(chalk.red('❌ Error visualizing workflow:'), error instanceof Error ? error.message : error);
+          } catch (err) {
+            console.error(chalk.red('❌ Error visualizing workflow:'), err instanceof Error ? getErrorMessage(err) : err);
           }
         })
     );

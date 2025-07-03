@@ -9,6 +9,7 @@ import process from 'node:process';
 import { LoggingConfig } from '../utils/types.js';
 import { formatBytes } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ILogger {
   debug(message: string, meta?: unknown): void;
   info(message: string, meta?: unknown): void;
@@ -128,8 +129,8 @@ export class Logger implements ILogger {
     if (this.fileHandle) {
       try {
         await this.fileHandle.close();
-      } catch (error) {
-        console.error('Error closing log file handle:', error);
+      } catch (err) {
+        console.error('Error closing log file handle:', getErrorMessage(err));
       } finally {
         delete this.fileHandle;
       }
@@ -233,8 +234,8 @@ export class Logger implements ILogger {
       const data = Buffer.from(message + '\n', 'utf8');
       await this.fileHandle.write(data);
       this.currentFileSize += data.length;
-    } catch (error) {
-      console.error('Failed to write to log file:', error);
+    } catch (err) {
+      console.error('Failed to write to log file:', getErrorMessage(err));
     }
   }
 
@@ -300,8 +301,8 @@ export class Logger implements ILogger {
       for (const file of filesToRemove) {
         await fs.unlink(path.join(dir, file));
       }
-    } catch (error) {
-      console.error('Failed to cleanup old log files:', error);
+    } catch (err) {
+      console.error('Failed to cleanup old log files:', getErrorMessage(err));
     }
   }
 }

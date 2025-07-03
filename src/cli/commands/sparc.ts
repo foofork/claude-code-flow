@@ -1,5 +1,6 @@
 import { success, error, warning, info } from "../cli-core.js";
 import type { CommandContext } from "../cli-core.js";
+import { getErrorMessage } from '../../utils/error-handler.js';
 import colors from "chalk";
 const { blue, yellow, green, magenta, cyan } = colors;
 
@@ -30,7 +31,7 @@ async function loadSparcConfig(): Promise<SparcConfig> {
     sparcConfig = JSON.parse(content);
     return sparcConfig!;
   } catch (error) {
-    throw new Error(`Failed to load SPARC configuration: ${error.message}`);
+    throw new Error(`Failed to load SPARC configuration: ${getErrorMessage(error)}`);
   }
 }
 
@@ -81,7 +82,7 @@ async function listSparcModes(ctx: CommandContext): Promise<void> {
       info("Use --verbose for detailed descriptions");
     }
   } catch (err) {
-    error(`Failed to list SPARC modes: ${err.message}`);
+    error(`Failed to list SPARC modes: ${getErrorMessage(err)}`);
   }
 }
 
@@ -120,7 +121,7 @@ async function showModeInfo(ctx: CommandContext): Promise<void> {
     console.log(mode.source);
 
   } catch (err) {
-    error(`Failed to show mode info: ${err.message}`);
+    error(`Failed to show mode info: ${getErrorMessage(err)}`);
   }
 }
 
@@ -172,7 +173,7 @@ async function runSparcMode(ctx: CommandContext): Promise<void> {
     await executeClaudeWithSparc(enhancedTask, tools, instanceId, ctx.flags);
 
   } catch (err) {
-    error(`Failed to run SPARC mode: ${err.message}`);
+    error(`Failed to run SPARC mode: ${getErrorMessage(err)}`);
   }
 }
 
@@ -253,7 +254,7 @@ async function runTddFlow(ctx: CommandContext): Promise<void> {
     success("SPARC TDD Workflow completed!");
 
   } catch (err) {
-    error(`Failed to run TDD flow: ${err.message}`);
+    error(`Failed to run TDD flow: ${getErrorMessage(err)}`);
   }
 }
 
@@ -335,7 +336,7 @@ async function runSparcWorkflow(ctx: CommandContext): Promise<void> {
     success("SPARC workflow completed!");
 
   } catch (err) {
-    error(`Failed to run workflow: ${err.message}`);
+    error(`Failed to run workflow: ${getErrorMessage(err)}`);
   }
 }
 
@@ -468,7 +469,7 @@ async function executeClaudeWithSparc(
       stdio: "inherit",
     });
 
-    const status = await new Promise((resolve) => {
+    const status = await new Promise<{ success: boolean; code: number | null }>((resolve) => {
       child.on("close", (code) => {
         resolve({ success: code === 0, code });
       });
@@ -480,7 +481,7 @@ async function executeClaudeWithSparc(
       error(`SPARC instance ${instanceId} exited with code ${status.code}`);
     }
   } catch (err) {
-    error(`Failed to execute Claude: ${err.message}`);
+    error(`Failed to execute Claude: ${getErrorMessage(err)}`);
   }
 }
 

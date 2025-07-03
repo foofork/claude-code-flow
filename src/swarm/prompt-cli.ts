@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import * as path from 'path';
-import { copyPrompts, copyPromptsEnhanced } from './prompt-copier-enhanced';
+import * as path from 'node:path';
+import { copyPrompts } from './prompt-copier';
+import { copyPromptsEnhanced } from './prompt-copier-enhanced';
 import { 
   PromptConfigManager, 
   PromptPathResolver, 
@@ -11,8 +12,9 @@ import {
   formatFileSize,
   formatDuration
 } from './prompt-utils';
-import { logger } from '../logger';
+import { logger } from '../core/logger.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 const program = new Command();
 
 program
@@ -105,8 +107,8 @@ program
         });
       }
 
-    } catch (error) {
-      console.error('Copy operation failed:', error);
+    } catch (err) {
+      console.error('Copy operation failed:', getErrorMessage(err));
       process.exit(1);
     }
   });
@@ -128,8 +130,8 @@ program
       if (directories.length === 0) {
         console.log('  No prompt directories found');
       }
-    } catch (error) {
-      console.error('Discovery failed:', error);
+    } catch (err) {
+      console.error('Discovery failed:', getErrorMessage(err));
       process.exit(1);
     }
   });
@@ -195,8 +197,8 @@ program
       
       console.log(`\nValidation complete: ${validFiles} valid, ${invalidFiles} invalid`);
       
-    } catch (error) {
-      console.error('Validation failed:', error);
+    } catch (err) {
+      console.error('Validation failed:', getErrorMessage(err));
       process.exit(1);
     }
   });
@@ -232,8 +234,8 @@ program
       } else {
         console.log('Use --init, --show, or --profiles');
       }
-    } catch (error) {
-      console.error('Configuration operation failed:', error);
+    } catch (err) {
+      console.error('Configuration operation failed:', getErrorMessage(err));
       process.exit(1);
     }
   });
@@ -252,8 +254,8 @@ program
       
       await copier.restoreFromBackup(manifestPath);
       console.log('✅ Rollback completed');
-    } catch (error) {
-      console.error('Rollback failed:', error);
+    } catch (err) {
+      console.error('Rollback failed:', getErrorMessage(err));
       process.exit(1);
     }
   });
@@ -270,8 +272,8 @@ program
       // This would implement incremental sync functionality
       console.log('Sync functionality not yet implemented');
       console.log('Options:', options);
-    } catch (error) {
-      console.error('Sync failed:', error);
+    } catch (err) {
+      console.error('Sync failed:', getErrorMessage(err));
       process.exit(1);
     }
   });

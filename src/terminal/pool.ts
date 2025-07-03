@@ -7,6 +7,7 @@ import { ILogger } from '../core/logger.js';
 import { TerminalError } from '../utils/errors.js';
 import { delay } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 interface PooledTerminal {
   terminal: Terminal;
   useCount: number;
@@ -263,9 +264,9 @@ export class TerminalPool {
       this.availableQueue.push(terminal.id);
 
       this.logger.debug('Created pooled terminal', { terminalId: terminal.id });
-    } catch (error) {
-      this.logger.error('Failed to create pooled terminal', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to create pooled terminal', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 }

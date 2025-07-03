@@ -3,6 +3,12 @@
  * Export all MCP components for easy integration
  */
 
+import { MCPServer } from './server.js';
+import { MCPLifecycleManager } from './lifecycle-manager.js';
+import { MCPPerformanceMonitor } from './performance-monitor.js';
+import { MCPProtocolManager } from './protocol-manager.js';
+import { MCPOrchestrationIntegration, type MCPOrchestrationConfig, type OrchestrationComponents } from './orchestration-integration.js';
+
 // Core MCP Server
 export { MCPServer, type IMCPServer } from './server.js';
 
@@ -35,11 +41,7 @@ export {
 export { 
   AuthManager,
   type IAuthManager,
-  type AuthContext,
   type AuthResult,
-  type TokenInfo,
-  type TokenGenerationOptions,
-  type AuthSession,
   Permissions 
 } from './auth.js';
 

@@ -7,6 +7,7 @@ import { ILogger } from '../core/logger.js';
 import { MCPError } from '../utils/errors.js';
 import { EventEmitter } from 'node:events';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ToolCapability {
   name: string;
   version: string;
@@ -171,7 +172,7 @@ export class ToolRegistry extends EventEmitter {
       this.emit('toolExecuted', { name, success: true, executionTime: Date.now() - startTime });
       
       return result;
-    } catch (error) {
+    } catch (err) {
       // Update failure metrics
       if (metrics) {
         const executionTime = Date.now() - startTime;
@@ -182,9 +183,9 @@ export class ToolRegistry extends EventEmitter {
         metrics.lastInvoked = new Date();
       }
 
-      this.logger.error('Tool execution failed', { name, error, executionTime: Date.now() - startTime });
-      this.emit('toolExecuted', { name, success: false, error, executionTime: Date.now() - startTime });
-      throw error;
+      this.logger.error('Tool execution failed', { name, err, executionTime: Date.now() - startTime });
+      this.emit('toolExecuted', { name, success: false, err, executionTime: Date.now() - startTime });
+      throw err;
     }
   }
 

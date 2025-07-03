@@ -9,6 +9,7 @@ import { Confirm, Input } from '@cliffy/prompt';
 import { formatDuration, formatStatusIndicator, formatProgressBar } from '../formatter.js';
 import { generateId } from '../../utils/helpers.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export const workflowCommand = new Command()
   .description('Execute and manage workflows')
   .action(() => {
@@ -147,8 +148,8 @@ async function runWorkflow(workflowFile: string, options: any): Promise<void> {
       try {
         const vars = JSON.parse(options.variables);
         workflow.variables = { ...workflow.variables, ...vars };
-      } catch (error) {
-        throw new Error(`Invalid variables JSON: ${(error as Error).message}`);
+      } catch (err) {
+        throw new Error(`Invalid variables JSON: ${getErrorMessage(err)}`);
       }
     }
 
@@ -167,8 +168,8 @@ async function runWorkflow(workflowFile: string, options: any): Promise<void> {
     } else {
       await executeWorkflow(execution, workflow, options);
     }
-  } catch (error) {
-    console.error(colors.red('Workflow execution failed:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Workflow execution failed:'), getErrorMessage(err));
     Deno.exit(1);
   }
 }
@@ -187,8 +188,8 @@ async function validateWorkflow(workflowFile: string, options: any): Promise<voi
       const depCount = Object.values(workflow.dependencies).flat().length;
       console.log(`${colors.white('Dependencies:')} ${depCount}`);
     }
-  } catch (error) {
-    console.error(colors.red('✗ Workflow validation failed:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('✗ Workflow validation failed:'), getErrorMessage(err));
     Deno.exit(1);
   }
 }
@@ -238,8 +239,8 @@ async function listWorkflows(options: any): Promise<void> {
     }
 
     table.render();
-  } catch (error) {
-    console.error(colors.red('Failed to list workflows:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to list workflows:'), getErrorMessage(err));
   }
 }
 
@@ -251,8 +252,8 @@ async function showWorkflowStatus(workflowId: string, options: any): Promise<voi
       const execution = await getWorkflowExecution(workflowId);
       displayWorkflowStatus(execution);
     }
-  } catch (error) {
-    console.error(colors.red('Failed to get workflow status:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to get workflow status:'), getErrorMessage(err));
   }
 }
 
@@ -288,8 +289,8 @@ async function stopWorkflow(workflowId: string, options: any): Promise<void> {
     }
 
     console.log(colors.green('✓ Workflow stopped'));
-  } catch (error) {
-    console.error(colors.red('Failed to stop workflow:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to stop workflow:'), getErrorMessage(err));
   }
 }
 
@@ -433,8 +434,8 @@ async function loadWorkflow(workflowFile: string): Promise<WorkflowDefinition> {
     }
     
     return JSON.parse(content) as WorkflowDefinition;
-  } catch (error) {
-    throw new Error(`Failed to load workflow file: ${(error as Error).message}`);
+  } catch (err) {
+    throw new Error(`Failed to load workflow file: ${getErrorMessage(err)}`);
   }
 }
 
@@ -628,8 +629,8 @@ async function watchWorkflowStatus(workflowId: string): Promise<void> {
       }
       
       await new Promise(resolve => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.error(colors.red('Error watching workflow:'), (error as Error).message);
+    } catch (err) {
+      console.error(colors.red('Error watching workflow:'), getErrorMessage(err));
       break;
     }
   }

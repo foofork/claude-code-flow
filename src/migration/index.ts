@@ -9,9 +9,10 @@ import { MigrationRunner } from './migration-runner';
 import { MigrationAnalyzer } from './migration-analyzer';
 import { MigrationStrategy } from './types';
 import { logger } from './logger';
-import * as chalk from 'chalk';
-import * as path from 'path';
+import chalk from 'chalk';
+import * as path from 'node:path';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 const program = new Command();
 
 program
@@ -35,8 +36,8 @@ program
       }
       
       analyzer.printAnalysis(analysis, options.detailed);
-    } catch (error) {
-      logger.error('Analysis failed:', error);
+    } catch (err) {
+      logger.error('Analysis failed:', err);
       process.exit(1);
     }
   });
@@ -63,8 +64,8 @@ program
       });
       
       await runner.run();
-    } catch (error) {
-      logger.error('Migration failed:', error);
+    } catch (err) {
+      logger.error('Migration failed:', err);
       process.exit(1);
     }
   });
@@ -85,8 +86,8 @@ program
       });
       
       await runner.rollback(options.timestamp);
-    } catch (error) {
-      logger.error('Rollback failed:', error);
+    } catch (err) {
+      logger.error('Rollback failed:', err);
       process.exit(1);
     }
   });
@@ -110,8 +111,8 @@ program
         logger.error('Migration validation failed');
         process.exit(1);
       }
-    } catch (error) {
-      logger.error('Validation failed:', error);
+    } catch (err) {
+      logger.error('Validation failed:', err);
       process.exit(1);
     }
   });
@@ -129,8 +130,8 @@ program
       });
       
       await runner.listBackups();
-    } catch (error) {
-      logger.error('Failed to list backups:', error);
+    } catch (err) {
+      logger.error('Failed to list backups:', err);
       process.exit(1);
     }
   });

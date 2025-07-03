@@ -7,6 +7,7 @@ import { ILogger } from '../core/logger.js';
 import { MCPMethodNotFoundError } from '../utils/errors.js';
 import { ToolRegistry } from './tools.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 /**
  * Request router implementation
  */
@@ -50,9 +51,9 @@ export class RequestRouter {
 
       // Method not found
       throw new MCPMethodNotFoundError(method);
-    } catch (error) {
+    } catch (err) {
       this.failedRequests++;
-      throw error;
+      throw new Error(getErrorMessage(err));
     }
   }
 

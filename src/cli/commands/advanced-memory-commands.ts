@@ -17,6 +17,13 @@ const logger = Logger.getInstance();
 let memoryManager: AdvancedMemoryManager | null = null;
 
 // Helper functions
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 function printSuccess(message: string): void {
   console.log(chalk.green(`✅ ${message}`));
 }
@@ -226,7 +233,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Query failed: ${error.message}`);
+        printError(`Query failed: ${getErrorMessage(error)}`);
         if (options.debug) {
           console.error(error);
         }
@@ -269,7 +276,7 @@ export function createAdvancedMemoryCommand(): Command {
         if (options.filterQuery) {
           try {
             filtering = JSON.parse(options.filterQuery);
-          } catch (error) {
+          } catch (err) {
             printError('Invalid filter query JSON format');
             return;
           }
@@ -308,7 +315,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Export failed: ${error.message}`);
+        printError(`Export failed: ${getErrorMessage(error)}`);
         if (options.debug) {
           console.error(error);
         }
@@ -364,7 +371,7 @@ export function createAdvancedMemoryCommand(): Command {
           if (options.keyMapping) {
             try {
               transformation.keyMapping = JSON.parse(options.keyMapping);
-            } catch (error) {
+            } catch (err) {
               printError('Invalid key mapping JSON format');
               return;
             }
@@ -373,8 +380,8 @@ export function createAdvancedMemoryCommand(): Command {
           if (options.valueTransform) {
             try {
               // Create function from string (simplified - in production, use a proper sandbox)
-              transformation.valueTransformation = new Function('value', options.valueTransform);
-            } catch (error) {
+              transformation.valueTransformation = new Function('value', options.valueTransform) as (value: any) => any;
+            } catch (err) {
               printError('Invalid value transformation function');
               return;
             }
@@ -382,8 +389,8 @@ export function createAdvancedMemoryCommand(): Command {
           
           if (options.metadataExtract) {
             try {
-              transformation.metadataExtraction = new Function('entry', options.metadataExtract);
-            } catch (error) {
+              transformation.metadataExtraction = new Function('entry', options.metadataExtract) as (entry: any) => Record<string, any>;
+            } catch (err) {
               printError('Invalid metadata extraction function');
               return;
             }
@@ -436,7 +443,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Import failed: ${error.message}`);
+        printError(`Import failed: ${getErrorMessage(error)}`);
         if (options.debug) {
           console.error(error);
         }
@@ -580,7 +587,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Statistics generation failed: ${error.message}`);
+        printError(`Statistics generation failed: ${getErrorMessage(error)}`);
         if (options.debug) {
           console.error(error);
         }
@@ -616,7 +623,7 @@ export function createAdvancedMemoryCommand(): Command {
         if (options.retentionPolicies) {
           try {
             retentionPolicies = JSON.parse(options.retentionPolicies);
-          } catch (error) {
+          } catch (err) {
             printError('Invalid retention policies JSON format');
             return;
           }
@@ -681,7 +688,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Cleanup failed: ${error.message}`);
+        printError(`Cleanup failed: ${getErrorMessage(error)}`);
         if (options.debug) {
           console.error(error);
         }
@@ -721,7 +728,7 @@ export function createAdvancedMemoryCommand(): Command {
         if (options.metadata) {
           try {
             metadata = JSON.parse(options.metadata);
-          } catch (error) {
+          } catch (err) {
             printError('Invalid metadata JSON format');
             return;
           }
@@ -753,7 +760,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Store failed: ${error.message}`);
+        printError(`Store failed: ${getErrorMessage(error)}`);
       }
     });
 
@@ -817,7 +824,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Retrieve failed: ${error.message}`);
+        printError(`Retrieve failed: ${getErrorMessage(error)}`);
       }
     });
 
@@ -855,7 +862,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Delete failed: ${error.message}`);
+        printError(`Delete failed: ${getErrorMessage(error)}`);
       }
     });
 
@@ -907,7 +914,7 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`List failed: ${error.message}`);
+        printError(`List failed: ${getErrorMessage(error)}`);
       }
     });
 
@@ -931,7 +938,7 @@ export function createAdvancedMemoryCommand(): Command {
         });
 
       } catch (error) {
-        printError(`Failed to list namespaces: ${error.message}`);
+        printError(`Failed to list namespaces: ${getErrorMessage(error)}`);
       }
     });
 
@@ -954,7 +961,7 @@ export function createAdvancedMemoryCommand(): Command {
         });
 
       } catch (error) {
-        printError(`Failed to list types: ${error.message}`);
+        printError(`Failed to list types: ${getErrorMessage(error)}`);
       }
     });
 
@@ -977,7 +984,7 @@ export function createAdvancedMemoryCommand(): Command {
         });
 
       } catch (error) {
-        printError(`Failed to list tags: ${error.message}`);
+        printError(`Failed to list tags: ${getErrorMessage(error)}`);
       }
     });
 
@@ -996,7 +1003,7 @@ export function createAdvancedMemoryCommand(): Command {
             const updates = JSON.parse(options.set);
             await manager.updateConfiguration(updates);
             printSuccess('Configuration updated');
-          } catch (error) {
+          } catch (err) {
             printError('Invalid configuration JSON format');
             return;
           }
@@ -1009,12 +1016,11 @@ export function createAdvancedMemoryCommand(): Command {
         }
 
       } catch (error) {
-        printError(`Configuration operation failed: ${error.message}`);
+        printError(`Configuration operation failed: ${getErrorMessage(error)}`);
       }
     });
 
   return memoryCmd;
 }
 
-// Export for use in the main CLI
-export { createAdvancedMemoryCommand };
+// Function already exported above

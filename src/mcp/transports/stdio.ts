@@ -10,6 +10,7 @@ import { MCPRequest, MCPResponse, MCPNotification } from '../../utils/types.js';
 import { ILogger } from '../../core/logger.js';
 import { MCPTransportError } from '../../utils/errors.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * Stdio transport implementation
  */
@@ -52,8 +53,8 @@ export class StdioTransport implements ITransport {
 
       this.running = true;
       this.logger.info('Stdio transport started');
-    } catch (error) {
-      throw new MCPTransportError('Failed to start stdio transport', { error });
+    } catch (err) {
+      throw new MCPTransportError('Failed to start stdio transport', { error: getErrorMessage(err) });
     }
   }
 
@@ -112,10 +113,10 @@ export class StdioTransport implements ITransport {
       if (!message.method) {
         throw new Error('Missing method');
       }
-    } catch (error) {
-      this.logger.error('Failed to parse message', { line, error });
+    } catch (err) {
+      this.logger.error('Failed to parse message', { line, err });
       
-      // Send error response if we can extract an ID
+      // Send err response if we can extract an ID
       let id = 'unknown';
       try {
         const parsed = JSON.parse(line);
@@ -123,7 +124,7 @@ export class StdioTransport implements ITransport {
           id = parsed.id;
         }
       } catch {
-        // Ignore parse error for ID extraction
+        // Ignore parse err for ID extraction
       }
 
       await this.sendResponse({
@@ -131,7 +132,7 @@ export class StdioTransport implements ITransport {
         id,
         error: {
           code: -32700,
-          message: 'Parse error',
+          message: 'Parse err',
         },
       });
       return;
@@ -165,16 +166,16 @@ export class StdioTransport implements ITransport {
     try {
       const response = await this.requestHandler(request);
       await this.sendResponse(response);
-    } catch (error) {
-      this.logger.error('Request handler error', { request, error });
+    } catch (err) {
+      this.logger.error('Request handler err', { request, err });
       
       await this.sendResponse({
         jsonrpc: '2.0',
         id: request.id,
         error: {
           code: -32603,
-          message: 'Internal error',
-          data: error instanceof Error ? error.message : String(error),
+          message: 'Internal err',
+          data: err instanceof Error ? getErrorMessage(err) : getErrorMessage(err),
         },
       });
     }
@@ -190,9 +191,9 @@ export class StdioTransport implements ITransport {
 
     try {
       await this.notificationHandler(notification);
-    } catch (error) {
-      this.logger.error('Notification handler error', { notification, error });
-      // Notifications don't send error responses
+    } catch (err) {
+      this.logger.error('Notification handler err', { notification, err });
+      // Notifications don't send err responses
     }
   }
 
@@ -200,8 +201,8 @@ export class StdioTransport implements ITransport {
     try {
       const json = JSON.stringify(response);
       stdout.write(json + '\n');
-    } catch (error) {
-      this.logger.error('Failed to send response', { response, error });
+    } catch (err) {
+      this.logger.error('Failed to send response', { response, err });
     }
   }
 
@@ -232,9 +233,9 @@ export class StdioTransport implements ITransport {
       const json = JSON.stringify(notification);
       stdout.write(json + '\n');
       this.notificationCount++;
-    } catch (error) {
-      this.logger.error('Failed to send notification', { notification, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to send notification', { notification, err });
+      throw new Error(getErrorMessage(err));
     }
   }
 }

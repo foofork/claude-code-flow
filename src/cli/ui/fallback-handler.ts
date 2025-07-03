@@ -4,8 +4,9 @@
  */
 
 import chalk from 'chalk';
-import { createCompatibleUI } from './compatible-ui.ts';
+import { createCompatibleUI } from './compatible-ui.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export interface FallbackOptions {
   enableUI?: boolean;
   fallbackMessage?: string;
@@ -53,9 +54,9 @@ export async function handleRawModeError(
       const ui = createCompatibleUI();
       await ui.start();
     } catch (fallbackError) {
-      console.log(chalk.red('❌ Fallback UI also failed:'), fallbackError.message);
+      console.log(chalk.red('❌ Fallback UI also failed:'), (fallbackError as any).message);
       await showBasicInterface(options);
-    }
+  }
   } else {
     await showBasicInterface(options);
   }
@@ -108,11 +109,11 @@ export function withRawModeFallback<T extends any[], R>(
   return async (...args: T): Promise<R | void> => {
     try {
       return await fn(...args);
-    } catch (error) {
-      if (error instanceof Error) {
-        await handleRawModeError(error, fallbackOptions);
+    } catch (err) {
+      if (err instanceof Error) {
+        await handleRawModeError(err, fallbackOptions);
       } else {
-        throw error;
+        throw err;
       }
     }
   };

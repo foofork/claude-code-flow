@@ -3,8 +3,8 @@
  */
 
 import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { 
   MigrationOptions, 
   MigrationResult, 
@@ -20,8 +20,9 @@ import { ProgressReporter } from './progress-reporter';
 import { MigrationValidator } from './migration-validator';
 import { glob } from 'glob';
 import * as inquirer from 'inquirer';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export class MigrationRunner {
   private options: MigrationOptions;
   private progress: ProgressReporter;
@@ -102,8 +103,8 @@ export class MigrationRunner {
       // Print summary
       this.printSummary(result);
 
-    } catch (error) {
-      result.errors.push({ error: error.message, stack: error.stack });
+    } catch (err) {
+      result.errors.push({ error: getErrorMessage(err), stack: (err instanceof Error ? err.stack : undefined) });
       this.progress.error('Migration failed');
       
       // Attempt rollback on failure
@@ -112,7 +113,7 @@ export class MigrationRunner {
         try {
           await this.rollback(result.rollbackPath);
           logger.success('Rollback completed');
-        } catch (rollbackError) {
+  } catch (rollbackError) {
           logger.error('Rollback failed:', rollbackError);
         }
       }

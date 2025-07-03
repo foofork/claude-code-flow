@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { Logger } from '../core/logger.js';
 import { performance } from 'node:perf_hooks';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 interface AgentMetrics {
   id: string;
   name: string;
@@ -300,8 +301,8 @@ export class SwarmMonitor extends EventEmitter {
         agents: Array.from(this.agentMetrics.values())
       });
       
-    } catch (error) {
-      this.logger.error('Error collecting metrics:', error);
+    } catch (err) {
+      this.logger.error('Error collecting metrics:', err);
     }
   }
 
@@ -386,8 +387,8 @@ export class SwarmMonitor extends EventEmitter {
       }) + '\n';
       
       await fs.appendFile(filepath, line);
-    } catch (error) {
-      this.logger.error('Error saving history:', error);
+    } catch (err) {
+      this.logger.error('Error saving history:', err);
     }
   }
 

@@ -13,6 +13,7 @@ import { eventBus } from '../../../core/event-bus.js';
 import { logger } from '../../../core/logger.js';
 import { formatDuration } from '../../formatter.js';
 
+import { getErrorMessage } from '../../../utils/error-handler.js';
 export const startCommand = new Command()
   .description('Start the Claude-Flow orchestration system')
   .option('-d, --daemon', 'Run as daemon in background')
@@ -219,10 +220,10 @@ export const startCommand = new Command()
           console.log(colors.gray('Press a key to select an option...'));
         }
       }
-    } catch (error) {
-      console.error(colors.red.bold('Failed to start:'), (error as Error).message);
+    } catch (err) {
+      console.error(colors.red.bold('Failed to start:'), getErrorMessage(err));
       if (options.verbose) {
-        console.error((error as Error).stack);
+        console.error((err as Error).stack);
       }
       
       // Cleanup on failure
@@ -276,8 +277,8 @@ async function stopExistingInstance(): Promise<void> {
     
     await Deno.remove('.claude-flow.pid').catch(() => {});
     console.log(colors.green('✓ Existing instance stopped'));
-  } catch (error) {
-    console.warn(colors.yellow('Warning: Could not stop existing instance'), (error as Error).message);
+  } catch (err) {
+    console.warn(colors.yellow('Warning: Could not stop existing instance'), getErrorMessage(err));
   }
 }
 
@@ -294,9 +295,9 @@ async function performHealthChecks(): Promise<void> {
       console.log(colors.gray(`  Checking ${name}...`));
       await check();
       console.log(colors.green(`  ✓ ${name} OK`));
-    } catch (error) {
-      console.log(colors.red(`  ✗ ${name} Failed: ${(error as Error).message}`));
-      throw error;
+    } catch (err) {
+      console.log(colors.red(`  ✗ ${name} Failed: ${getErrorMessage(err)}`));
+      throw new Error(getErrorMessage(err));
     }
   }
 }
@@ -338,7 +339,7 @@ async function checkDependencies(): Promise<void> {
   for (const dir of requiredDirs) {
     try {
       await Deno.mkdir(dir, { recursive: true });
-    } catch (error) {
+    } catch (err) {
       throw new Error(`Cannot create required directory: ${dir}`);
     }
   }
@@ -390,10 +391,10 @@ async function startWithProgress(processManager: ProcessManager, mode: 'all' | '
     try {
       await processManager.startProcess(processId);
       console.log(colors.green(`${progress} ✓ ${processId} started`));
-    } catch (error) {
-      console.log(colors.red(`${progress} ✗ ${processId} failed: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`${progress} ✗ ${processId} failed: ${getErrorMessage(err)}`));
       if (processId === 'orchestrator' || processId === 'mcp-server') {
-        throw error; // Critical processes
+        throw new Error(getErrorMessage(err)); // Critical processes
       }
     }
     

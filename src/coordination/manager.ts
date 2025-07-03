@@ -13,6 +13,7 @@ import { AdvancedTaskScheduler } from './advanced-scheduler.js';
 import { ConflictResolver } from './conflict-resolution.js';
 import { CoordinationMetricsCollector } from './metrics.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ICoordinationManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
@@ -81,9 +82,9 @@ export class CoordinationManager implements ICoordinationManager {
 
       this.initialized = true;
       this.logger.info('Coordination manager initialized');
-    } catch (error) {
-      this.logger.error('Failed to initialize coordination manager', error);
-      throw new CoordinationError('Coordination manager initialization failed', { error });
+    } catch (err) {
+      this.logger.error('Failed to initialize coordination manager', err);
+      throw new CoordinationError('Coordination manager initialization failed', { err });
     }
   }
 
@@ -112,9 +113,9 @@ export class CoordinationManager implements ICoordinationManager {
 
       this.initialized = false;
       this.logger.info('Coordination manager shutdown complete');
-    } catch (error) {
-      this.logger.error('Error during coordination manager shutdown', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Error during coordination manager shutdown', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -194,10 +195,10 @@ export class CoordinationManager implements ICoordinationManager {
         status.error = errors.join('; ');
       }
       return status;
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }
@@ -208,8 +209,8 @@ export class CoordinationManager implements ICoordinationManager {
       const { taskId, result } = data as { taskId: string; result: unknown };
       try {
         await this.scheduler.completeTask(taskId, result);
-      } catch (error) {
-        this.logger.error('Error handling task completion', { taskId, error });
+      } catch (err) {
+        this.logger.error('Error handling task completion', { taskId, err });
       }
     });
 
@@ -231,8 +232,8 @@ export class CoordinationManager implements ICoordinationManager {
         
         // Cancel all tasks assigned to the agent
         await this.scheduler.cancelAgentTasks(agentId);
-      } catch (error) {
-        this.logger.error('Error handling agent termination', { agentId, error });
+      } catch (err) {
+        this.logger.error('Error handling agent termination', { agentId, err });
       }
     });
   }
@@ -251,8 +252,8 @@ export class CoordinationManager implements ICoordinationManager {
           // Attempt to resolve deadlock
           await this.resolveDeadlock(deadlock);
         }
-      } catch (error) {
-        this.logger.error('Error during deadlock detection', error);
+      } catch (err) {
+        this.logger.error('Error during deadlock detection', err);
       }
     }, 10000); // Check every 10 seconds
   }
@@ -355,7 +356,7 @@ export class CoordinationManager implements ICoordinationManager {
       this.logger.info('Deadlock resolved by preempting agent', { 
         agentId: agentToPreempt,
       });
-    } catch (error) {
+    } catch (err) {
       throw new DeadlockError(
         'Failed to resolve deadlock',
         deadlock.agents,
@@ -396,8 +397,8 @@ export class CoordinationManager implements ICoordinationManager {
       
       // Clean up old conflicts
       this.conflictResolver.cleanupOldConflicts(24 * 60 * 60 * 1000); // 24 hours
-    } catch (error) {
-      this.logger.error('Error during coordination manager maintenance', error);
+    } catch (err) {
+      this.logger.error('Error during coordination manager maintenance', err);
     }
   }
 
@@ -450,10 +451,10 @@ export class CoordinationManager implements ICoordinationManager {
     // Auto-resolve using default strategy
     try {
       await this.conflictResolver.autoResolve(conflict.id);
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Failed to auto-resolve conflict', { 
         conflictId: conflict.id,
-        error,
+        err,
       });
     }
   }

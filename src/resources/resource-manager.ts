@@ -8,6 +8,7 @@ import { IEventBus } from '../core/event-bus.js';
 import { AgentId, TaskId } from '../swarm/types.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ResourceManagerConfig {
   enableResourcePooling: boolean;
   enableResourceMonitoring: boolean;
@@ -385,7 +386,7 @@ export class ResourceManager extends EventEmitter {
       this.handleResourceRelease(data);
     });
 
-    this.eventBus.on('resource:usage-update', (data) => {
+    this.eventBus.on('resource:usage-update', (data: any) => {
       this.updateResourceUsage(data.resourceId, data.usage);
     });
 
@@ -583,14 +584,14 @@ export class ResourceManager extends EventEmitter {
 
       return reservationId;
 
-    } catch (error) {
+    } catch (err) {
       reservation.status = 'failed';
       this.logger.error('Resource reservation failed', {
         reservationId,
         agentId: agentId.id,
-        error
+        err
       });
-      throw error;
+      throw err;
     }
   }
 
@@ -1139,8 +1140,8 @@ export class ResourceManager extends EventEmitter {
         allocations: this.allocations.size
       });
 
-    } catch (error) {
-      this.logger.error('Monitoring failed', error);
+    } catch (err) {
+      this.logger.error('Monitoring failed', err);
     }
   }
 

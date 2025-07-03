@@ -5,6 +5,7 @@ import { generateId } from '../utils/helpers.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface SwarmMemoryEntry {
   id: string;
   agentId: string;
@@ -299,8 +300,8 @@ export class SwarmMemoryManager extends EventEmitter {
     for (const targetId of targets) {
       try {
         await this.shareMemory(entryId, targetId);
-      } catch (error) {
-        this.logger.warn(`Failed to share memory to ${targetId}:`, error);
+      } catch (err) {
+        this.logger.warn(`Failed to share memory to ${targetId}:`, err);
       }
     }
 
@@ -444,7 +445,7 @@ export class SwarmMemoryManager extends EventEmitter {
         }
 
         this.logger.info(`Loaded ${entriesArray.length} memory entries`);
-      } catch (error) {
+      } catch (err) {
         this.logger.warn('No existing memory entries found');
       }
 
@@ -469,12 +470,12 @@ export class SwarmMemoryManager extends EventEmitter {
         }
 
         this.logger.info(`Loaded ${kbArray.length} knowledge bases`);
-      } catch (error) {
+      } catch (err) {
         this.logger.warn('No existing knowledge bases found');
       }
 
-    } catch (error) {
-      this.logger.error('Error loading memory state:', error);
+    } catch (err) {
+      this.logger.error('Error loading memory state:', err);
     }
   }
 
@@ -491,8 +492,8 @@ export class SwarmMemoryManager extends EventEmitter {
       await fs.writeFile(kbFile, JSON.stringify(kbArray, null, 2));
 
       this.logger.debug('Saved memory state to disk');
-    } catch (error) {
-      this.logger.error('Error saving memory state:', error);
+    } catch (err) {
+      this.logger.error('Error saving memory state:', err);
     }
   }
 
@@ -500,8 +501,8 @@ export class SwarmMemoryManager extends EventEmitter {
     try {
       await this.saveMemoryState();
       this.emit('memory:synced');
-    } catch (error) {
-      this.logger.error('Error syncing memory state:', error);
+    } catch (err) {
+      this.logger.error('Error syncing memory state:', err);
     }
   }
 

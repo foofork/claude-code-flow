@@ -10,6 +10,7 @@ import { WorkStealingCoordinator } from './work-stealing.js';
 import { DependencyGraph } from './dependency-graph.js';
 import { CircuitBreakerManager, CircuitBreakerConfig } from './circuit-breaker.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface SchedulingStrategy {
   name: string;
   selectAgent(task: Task, agents: AgentProfile[], context: SchedulingContext): string | null;
@@ -429,8 +430,8 @@ export class AdvancedTaskScheduler extends TaskScheduler {
           to: targetAgent,
           stolenCount: tasksToSteal.length,
         });
-      } catch (error) {
-        this.logger.error('Work stealing failed', { error });
+      } catch (err) {
+        this.logger.error('Work stealing failed', { error: getErrorMessage(err) });
       }
     });
 

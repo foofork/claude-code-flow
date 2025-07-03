@@ -13,6 +13,7 @@ import {
   MemoryType, MemoryPermissions, AgentId, SwarmEvent, SWARM_CONSTANTS
 } from './types.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface MemoryQuery {
   namespace?: string;
   partition?: string;
@@ -178,9 +179,9 @@ export class SwarmMemoryManager extends EventEmitter {
         partitions: this.partitions.size
       });
 
-    } catch (error) {
-      this.logger.error('Failed to initialize memory manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize memory manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -208,8 +209,8 @@ export class SwarmMemoryManager extends EventEmitter {
       this.emit('memory:shutdown');
       this.logger.info('Swarm memory manager shut down');
 
-    } catch (error) {
-      this.logger.error('Error during memory manager shutdown', { error });
+    } catch (err) {
+      this.logger.error('Error during memory manager shutdown', { error: getErrorMessage(err) });
     }
   }
 
@@ -618,11 +619,11 @@ export class SwarmMemoryManager extends EventEmitter {
           sharer: options.broadcaster
         });
         sharedIds.push(sharedId);
-      } catch (error) {
+      } catch (err) {
         this.logger.warn('Failed to share memory with agent', {
           key,
           targetAgent: targetAgent.id,
-          error: error.message
+          error: getErrorMessage(err)
         });
       }
     }
@@ -1123,7 +1124,7 @@ export class SwarmMemoryManager extends EventEmitter {
   private async loadMemoryState(): Promise<void> {
     try {
       const state = await this.persistence.loadState();
-      if (state) {
+      if (state !== undefined && state !== null) {
         // Load entries
         for (const entry of state.entries || []) {
           this.entries.set(entry.id, entry);
@@ -1142,8 +1143,8 @@ export class SwarmMemoryManager extends EventEmitter {
           partitions: this.partitions.size
         });
       }
-    } catch (error) {
-      this.logger.warn('Failed to load memory state', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load memory state', { error: getErrorMessage(err) });
     }
   }
 
@@ -1157,8 +1158,8 @@ export class SwarmMemoryManager extends EventEmitter {
       };
       
       await this.persistence.saveState(state);
-    } catch (error) {
-      this.logger.error('Failed to save memory state', { error });
+    } catch (err) {
+      this.logger.error('Failed to save memory state', { error: getErrorMessage(err) });
     }
   }
 
@@ -1247,8 +1248,8 @@ export class SwarmMemoryManager extends EventEmitter {
       if (this.config.enableDistribution) {
         await this.replication.sync();
       }
-    } catch (error) {
-      this.logger.error('Background sync failed', { error });
+    } catch (err) {
+      this.logger.error('Background sync failed', { error: getErrorMessage(err) });
     }
   }
 
@@ -1410,7 +1411,7 @@ class MemoryPersistence {
       const statePath = path.join(this.config.persistencePath, 'state.json');
       const content = await fs.readFile(statePath, 'utf-8');
       return JSON.parse(content);
-    } catch (error) {
+    } catch (err) {
       return null;
     }
   }
@@ -1426,7 +1427,7 @@ class MemoryPersistence {
       const backupPath = path.join(this.config.persistencePath, 'backups', `${backupId}.json`);
       const content = await fs.readFile(backupPath, 'utf-8');
       return JSON.parse(content);
-    } catch (error) {
+    } catch (err) {
       return null;
     }
   }

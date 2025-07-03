@@ -7,6 +7,7 @@ import { colors } from '@cliffy/ansi/colors';
 import { ProcessManager } from './process-manager.js';
 import { ProcessInfo, ProcessStatus, SystemStats } from './types.js';
 
+import { getErrorMessage } from '../../../utils/error-handler.js';
 export class ProcessUI {
   private processManager: ProcessManager;
   private running = false;
@@ -309,8 +310,8 @@ export class ProcessUI {
       console.log(colors.yellow(`Starting ${processId}...`));
       await this.processManager.startProcess(processId);
       console.log(colors.green(`✓ Started ${processId}`));
-    } catch (error) {
-      console.log(colors.red(`✗ Failed to start ${processId}: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`✗ Failed to start ${processId}: ${getErrorMessage(err)}`));
     }
     await this.waitForKey();
   }
@@ -320,8 +321,8 @@ export class ProcessUI {
       console.log(colors.yellow(`Stopping ${processId}...`));
       await this.processManager.stopProcess(processId);
       console.log(colors.green(`✓ Stopped ${processId}`));
-    } catch (error) {
-      console.log(colors.red(`✗ Failed to stop ${processId}: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`✗ Failed to stop ${processId}: ${getErrorMessage(err)}`));
     }
     await this.waitForKey();
   }
@@ -331,8 +332,8 @@ export class ProcessUI {
       console.log(colors.yellow(`Restarting ${processId}...`));
       await this.processManager.restartProcess(processId);
       console.log(colors.green(`✓ Restarted ${processId}`));
-    } catch (error) {
-      console.log(colors.red(`✗ Failed to restart ${processId}: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`✗ Failed to restart ${processId}: ${getErrorMessage(err)}`));
     }
     await this.waitForKey();
   }
@@ -342,8 +343,8 @@ export class ProcessUI {
       console.log(colors.yellow('Starting all processes...'));
       await this.processManager.startAll();
       console.log(colors.green('✓ All processes started'));
-    } catch (error) {
-      console.log(colors.red(`✗ Failed to start all: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`✗ Failed to start all: ${getErrorMessage(err)}`));
     }
     await this.waitForKey();
     this.render();
@@ -354,8 +355,8 @@ export class ProcessUI {
       console.log(colors.yellow('Stopping all processes...'));
       await this.processManager.stopAll();
       console.log(colors.green('✓ All processes stopped'));
-    } catch (error) {
-      console.log(colors.red(`✗ Failed to stop all: ${(error as Error).message}`));
+    } catch (err) {
+      console.log(colors.red(`✗ Failed to stop all: ${getErrorMessage(err)}`));
     }
     await this.waitForKey();
     this.render();

@@ -12,6 +12,7 @@ import { MarkdownBackend } from './backends/markdown.js';
 import { MemoryCache } from './cache.js';
 import { MemoryIndexer } from './indexer.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface IMemoryManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
@@ -46,7 +47,7 @@ export class MemoryManager implements IMemoryManager {
   private indexer: MemoryIndexer;
   private banks = new Map<string, MemoryBank>();
   private initialized = false;
-  private syncInterval?: number;
+  private syncInterval?: NodeJS.Timeout;
 
   constructor(
     private config: MemoryConfig,
@@ -86,9 +87,9 @@ export class MemoryManager implements IMemoryManager {
 
       this.initialized = true;
       this.logger.info('Memory manager initialized');
-    } catch (error) {
-      this.logger.error('Failed to initialize memory manager', error);
-      throw new MemoryError('Memory manager initialization failed', { error });
+    } catch (err) {
+      this.logger.error('Failed to initialize memory manager', err);
+      throw new MemoryError('Memory manager initialization failed', { err });
     }
   }
 
@@ -117,9 +118,9 @@ export class MemoryManager implements IMemoryManager {
 
       this.initialized = false;
       this.logger.info('Memory manager shutdown complete');
-    } catch (error) {
-      this.logger.error('Error during memory manager shutdown', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Error during memory manager shutdown', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -195,9 +196,9 @@ export class MemoryManager implements IMemoryManager {
 
       // Emit event
       this.eventBus.emit('memory:created', { entry });
-    } catch (error) {
-      this.logger.error('Failed to store memory entry', error);
-      throw new MemoryError('Failed to store memory entry', { error });
+    } catch (err) {
+      this.logger.error('Failed to store memory entry', err);
+      throw new MemoryError('Failed to store memory entry', { err });
     }
   }
 
@@ -261,9 +262,9 @@ export class MemoryManager implements IMemoryManager {
       results = results.slice(start, start + limit);
 
       return results;
-    } catch (error) {
-      this.logger.error('Failed to query memory', error);
-      throw new MemoryError('Failed to query memory', { error });
+    } catch (err) {
+      this.logger.error('Failed to query memory', err);
+      throw new MemoryError('Failed to query memory', { err });
     }
   }
 
@@ -343,10 +344,10 @@ export class MemoryManager implements IMemoryManager {
         metrics,
         ...(backendHealth.error && { error: backendHealth.error }),
       };
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }
@@ -391,8 +392,8 @@ export class MemoryManager implements IMemoryManager {
       }
 
       this.logger.debug('Memory manager maintenance completed');
-    } catch (error) {
-      this.logger.error('Error during memory manager maintenance', error);
+    } catch (err) {
+      this.logger.error('Error during memory manager maintenance', err);
     }
   }
 
@@ -430,8 +431,8 @@ export class MemoryManager implements IMemoryManager {
     this.syncInterval = setInterval(async () => {
       try {
         await this.syncCache();
-      } catch (error) {
-        this.logger.error('Cache sync error', error);
+      } catch (err) {
+        this.logger.error('Cache sync err', err);
       }
     }, this.config.syncInterval);
   }

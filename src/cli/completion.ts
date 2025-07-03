@@ -4,6 +4,7 @@
 
 import { colors } from '@cliffy/ansi/colors';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export class CompletionGenerator {
   private commands = [
     'start', 'agent', 'task', 'memory', 'config', 'status', 
@@ -487,7 +488,7 @@ complete -f -c claude-flow -n '__fish_claude_flow_using_command completion' -a '
         console.log(`${colors.white('Location:')} ${path}`);
         console.log(colors.gray('Restart your shell or run: source ~/.bashrc'));
         return;
-      } catch (error) {
+      } catch (err) {
         // Try next path
         continue;
       }
@@ -514,7 +515,7 @@ complete -f -c claude-flow -n '__fish_claude_flow_using_command completion' -a '
         console.log(`${colors.white('Location:')} ${path}`);
         console.log(colors.gray('Restart your shell or run: autoload -U compinit && compinit'));
         return;
-      } catch (error) {
+      } catch (err) {
         // Try next path
         continue;
       }
@@ -541,7 +542,7 @@ complete -f -c claude-flow -n '__fish_claude_flow_using_command completion' -a '
         console.log(`${colors.white('Location:')} ${path}`);
         console.log(colors.gray('Completions will be available in new fish sessions'));
         return;
-      } catch (error) {
+      } catch (err) {
         // Try next path
         continue;
       }

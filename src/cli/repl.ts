@@ -9,6 +9,7 @@ import { AgentProfile, Task } from '../utils/types.js';
 import { generateId } from '../utils/helpers.js';
 import { formatStatusIndicator, formatDuration, formatProgressBar } from './formatter.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 interface REPLCommand {
   name: string;
   aliases?: string[];
@@ -333,8 +334,8 @@ export async function startREPL(options: any = {}): Promise<void> {
           Deno.chdir(newDir);
           ctx.workingDirectory = Deno.cwd();
           console.log(colors.gray(`Changed to: ${ctx.workingDirectory}`));
-        } catch (error) {
-          console.error(colors.red('Error:'), error instanceof Error ? error.message : String(error));
+        } catch (err) {
+          console.error(colors.red('Error:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
         }
       },
     },
@@ -405,8 +406,8 @@ export async function startREPL(options: any = {}): Promise<void> {
       if (command) {
         try {
           await command.handler(commandArgs, context);
-        } catch (error) {
-          console.error(colors.red('Command failed:'), error instanceof Error ? error.message : String(error));
+        } catch (err) {
+          console.error(colors.red('Command failed:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
         }
       } else {
         console.log(colors.red(`Unknown command: ${commandName}`));
@@ -418,8 +419,8 @@ export async function startREPL(options: any = {}): Promise<void> {
           console.log(colors.gray('Did you mean:'), suggestions.map(s => colors.cyan(s)).join(', '));
         }
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? getErrorMessage(err) : getErrorMessage(err);
       if (errorMessage.includes('EOF') || errorMessage.includes('interrupted')) {
         // Ctrl+D or Ctrl+C pressed
         console.log('\n' + colors.gray('Goodbye!'));

@@ -1,9 +1,10 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
-import { join } from 'path';
+import { join } from 'node:path';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface AnalyticsMetric {
   id: string;
   name: string;
@@ -433,9 +434,9 @@ export class AnalyticsManager extends EventEmitter {
       await this.startMetricsCollection();
       
       this.logger.info('Analytics Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Analytics Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Analytics Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -670,10 +671,10 @@ export class AnalyticsManager extends EventEmitter {
       this.emit('model:trained', model);
       this.logger.info(`Predictive model trained: ${model.name} (${model.id}) - Accuracy: ${model.accuracy}%`);
 
-    } catch (error) {
-      model.status = 'error';
-      this.logger.error(`Model training failed: ${model.name}`, { error });
-      throw error;
+    } catch (err) {
+      model.status = 'err';
+      this.logger.error(`Model training failed: ${model.name}`, { error: getErrorMessage(err) });
+      throw err;
     }
 
     return model;
@@ -985,8 +986,8 @@ export class AnalyticsManager extends EventEmitter {
       }
 
       this.logger.info(`Loaded ${this.dashboards.size} dashboards, ${this.insights.size} insights, ${this.models.size} models`);
-    } catch (error) {
-      this.logger.warn('Failed to load some analytics configurations', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load some analytics configurations', { error: getErrorMessage(err) });
     }
   }
 
@@ -1140,8 +1141,8 @@ export class AnalyticsManager extends EventEmitter {
         source: 'system-monitor',
         metadata: {}
       });
-    } catch (error) {
-      this.logger.error('Failed to collect system metrics', { error });
+    } catch (err) {
+      this.logger.error('Failed to collect system metrics', { error: getErrorMessage(err) });
     }
   }
 
@@ -1183,8 +1184,8 @@ export class AnalyticsManager extends EventEmitter {
         source: 'application',
         metadata: {}
       });
-    } catch (error) {
-      this.logger.error('Failed to collect application metrics', { error });
+    } catch (err) {
+      this.logger.error('Failed to collect application metrics', { error: getErrorMessage(err) });
     }
   }
 
@@ -1203,8 +1204,8 @@ export class AnalyticsManager extends EventEmitter {
       
       existingData.push(metric);
       await writeFile(filePath, JSON.stringify(existingData, null, 2));
-    } catch (error) {
-      this.logger.error('Failed to persist metric', { error, metric: metric.id });
+    } catch (err) {
+      this.logger.error('Failed to persist metric', { err, metric: metric.id });
     }
   }
 

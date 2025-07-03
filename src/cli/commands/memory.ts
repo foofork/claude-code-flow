@@ -6,6 +6,7 @@ import { Command } from '@cliffy/command';
 import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 interface MemoryEntry {
   key: string;
   value: string;
@@ -137,8 +138,8 @@ export const memoryCommand = new Command()
         console.log(`📝 Key: ${key}`);
         console.log(`📦 Namespace: ${options.namespace}`);
         console.log(`💾 Size: ${new TextEncoder().encode(value).length} bytes`);
-      } catch (error) {
-        console.error(colors.red('Failed to store:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to store:'), getErrorMessage(err));
       }
     })
   )
@@ -171,8 +172,8 @@ export const memoryCommand = new Command()
         if (results.length > options.limit) {
           console.log(colors.gray(`\n... and ${results.length - options.limit} more results`));
         }
-      } catch (error) {
-        console.error(colors.red('Failed to query:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to query:'), getErrorMessage(err));
       }
     })
   )
@@ -189,8 +190,8 @@ export const memoryCommand = new Command()
         console.log(`📁 File: ${file}`);
         console.log(`📊 Entries: ${stats.totalEntries}`);
         console.log(`💾 Size: ${(stats.sizeBytes / 1024).toFixed(2)} KB`);
-      } catch (error) {
-        console.error(colors.red('Failed to export:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to export:'), getErrorMessage(err));
       }
     })
   )
@@ -207,8 +208,8 @@ export const memoryCommand = new Command()
         console.log(`📁 File: ${file}`);
         console.log(`📊 Entries: ${stats.totalEntries}`);
         console.log(`🗂️  Namespaces: ${stats.namespaces}`);
-      } catch (error) {
-        console.error(colors.red('Failed to import:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to import:'), getErrorMessage(err));
       }
     })
   )
@@ -231,8 +232,8 @@ export const memoryCommand = new Command()
             console.log(`   ${namespace}: ${count} entries`);
           }
         }
-      } catch (error) {
-        console.error(colors.red('Failed to get stats:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to get stats:'), getErrorMessage(err));
       }
     })
   )
@@ -246,8 +247,8 @@ export const memoryCommand = new Command()
         const removed = await memory.cleanup(options.days);
         console.log(colors.green('✅ Cleanup completed'));
         console.log(`🗑️  Removed: ${removed} entries older than ${options.days} days`);
-      } catch (error) {
-        console.error(colors.red('Failed to cleanup:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to cleanup:'), getErrorMessage(err));
       }
     })
   );

@@ -1,10 +1,11 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
-import { join } from 'path';
-import { spawn } from 'child_process';
+import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface SecurityScan {
   id: string;
   name: string;
@@ -381,9 +382,9 @@ export class SecurityManager extends EventEmitter {
       await this.initializeVulnerabilityDatabases();
       
       this.logger.info('Security Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Security Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Security Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -523,20 +524,20 @@ export class SecurityManager extends EventEmitter {
 
       this.logger.info(`Security scan completed: ${scan.name} (${scan.id}) - ${scan.results.length} findings`);
 
-    } catch (error) {
+    } catch (err) {
       scan.status = 'failed';
       scan.updatedAt = new Date();
 
       this.addAuditEntry(scan, 'system', 'scan_failed', 'scan', {
         scanId,
-        error: error.message
+        error: getErrorMessage(err)
       });
 
       await this.saveScan(scan);
-      this.emit('scan:failed', { scan, error });
+      this.emit('scan:failed', { scan, err });
 
-      this.logger.error(`Security scan failed: ${scan.name} (${scanId})`, { error });
-      throw error;
+      this.logger.error(`Security scan failed: ${scan.name} (${scanId})`, { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -884,8 +885,8 @@ export class SecurityManager extends EventEmitter {
       }
 
       this.logger.info(`Loaded ${this.scans.size} scans, ${this.policies.size} policies, ${this.incidents.size} incidents`);
-    } catch (error) {
-      this.logger.warn('Failed to load some security configurations', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load some security configurations', { error: getErrorMessage(err) });
     }
   }
 
@@ -1076,8 +1077,8 @@ export class SecurityManager extends EventEmitter {
           const auditResult = JSON.parse(stdout);
           const findings = this.parseNpmAuditResults(auditResult);
           resolve(findings);
-        } catch (error) {
-          reject(new Error(`Failed to parse npm audit results: ${error.message}`));
+        } catch (err) {
+          reject(new Error(`Failed to parse npm audit results: ${getErrorMessage(err)}`));
         }
       });
 

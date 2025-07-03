@@ -7,6 +7,7 @@ import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 import { formatHealthStatus, formatDuration, formatStatusIndicator } from '../formatter.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export const statusCommand = new Command()
   .description('Show Claude-Flow system status')
   .option('-w, --watch', 'Watch mode - continuously update status')
@@ -36,12 +37,12 @@ async function showStatus(options: any): Promise<void> {
     } else {
       showFullStatus(status);
     }
-  } catch (error) {
-    if ((error as Error).message.includes('ECONNREFUSED') || (error as Error).message.includes('connection refused')) {
+  } catch (err) {
+    if (getErrorMessage(err).includes('ECONNREFUSED') || getErrorMessage(err).includes('connection refused')) {
       console.error(colors.red('✗ Claude-Flow is not running'));
       console.log(colors.gray('Start it with: claude-flow start'));
     } else {
-      console.error(colors.red('Error getting status:'), (error as Error).message);
+      console.error(colors.red('Error getting status:'), getErrorMessage(err));
     }
   }
 }
@@ -62,8 +63,8 @@ async function watchStatus(options: any): Promise<void> {
     
     try {
       await showStatus({ ...options, json: false });
-    } catch (error) {
-      console.error(colors.red('Status update failed:'), (error as Error).message);
+    } catch (err) {
+      console.error(colors.red('Status update failed:'), getErrorMessage(err));
     }
     
     await new Promise(resolve => setTimeout(resolve, interval));

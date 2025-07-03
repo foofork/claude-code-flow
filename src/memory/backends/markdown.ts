@@ -2,13 +2,14 @@
  * Markdown backend implementation for human-readable memory storage
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { IMemoryBackend } from './base.js';
 import { MemoryEntry, MemoryQuery } from '../../utils/types.js';
 import { ILogger } from '../../core/logger.js';
 import { MemoryBackendError } from '../../utils/errors.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * Markdown-based memory backend
  */
@@ -36,8 +37,8 @@ export class MarkdownBackend implements IMemoryBackend {
       await this.loadIndex();
 
       this.logger.info('Markdown backend initialized');
-    } catch (error) {
-      throw new MemoryBackendError('Failed to initialize Markdown backend', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to initialize Markdown backend', { error: getErrorMessage(err) });
     }
   }
 
@@ -59,8 +60,8 @@ export class MarkdownBackend implements IMemoryBackend {
 
       // Update index
       await this.saveIndex();
-    } catch (error) {
-      throw new MemoryBackendError('Failed to store entry', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to store entry', { err });
     }
   }
 
@@ -92,8 +93,8 @@ export class MarkdownBackend implements IMemoryBackend {
 
       // Update index
       await this.saveIndex();
-    } catch (error) {
-      throw new MemoryBackendError('Failed to delete entry', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to delete entry', { err });
     }
   }
 
@@ -184,10 +185,10 @@ export class MarkdownBackend implements IMemoryBackend {
           totalSizeBytes,
         },
       };
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }

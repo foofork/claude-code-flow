@@ -3,12 +3,13 @@
  */
 
 import * as fs from 'fs-extra';
-import * as path from 'path';
+import * as path from 'node:path';
 import { ValidationResult, ValidationCheck } from './types';
 import { logger } from './logger';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { glob } from 'glob';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export class MigrationValidator {
   private requiredFiles = [
     '.claude/commands/sparc.md',
@@ -147,8 +148,8 @@ export class MigrationValidator {
         result.warnings.push(`SPARC command ${command} may not be optimized`);
       }
       
-    } catch (error) {
-      result.errors.push(`Failed to validate ${command}: ${error.message}`);
+    } catch (err) {
+      result.errors.push(`Failed to validate ${command}: ${getErrorMessage(err)}`);
     }
   }
 
@@ -196,8 +197,8 @@ export class MigrationValidator {
             result.warnings.push(`Missing SPARC mode: ${mode}`);
           }
         }
-      } catch (error) {
-        result.errors.push(`Invalid .roomodes file: ${error.message}`);
+      } catch (err) {
+        result.errors.push(`Invalid .roomodes file: ${getErrorMessage(err)}`);
         check.passed = false;
       }
     }
@@ -232,8 +233,8 @@ export class MigrationValidator {
             check.passed = false;
           }
           
-        } catch (error) {
-          result.errors.push(`Cannot read file ${file}: ${error.message}`);
+        } catch (err) {
+          result.errors.push(`Cannot read file ${file}: ${getErrorMessage(err)}`);
           check.passed = false;
         }
       }
@@ -256,7 +257,7 @@ export class MigrationValidator {
         const testFile = path.join(claudePath, '.test-write');
         await fs.writeFile(testFile, 'test');
         await fs.remove(testFile);
-      } catch (error) {
+      } catch (err) {
         result.warnings.push('.claude directory may not be writable');
       }
     }
@@ -277,7 +278,7 @@ export class MigrationValidator {
           result.warnings.push(`Potential script conflicts: ${conflictingScripts.join(', ')}`);
         }
         
-      } catch (error) {
+      } catch (err) {
         result.warnings.push('Could not validate package.json');
       }
     }

@@ -1,4 +1,6 @@
 // init/directory-structure.ts - Directory structure creation
+import { getErrorMessage } from '../../utils/error-handler.js';
+
 export async function createDirectoryStructure(): Promise<void> {
   const fs = await import('fs/promises');
   const path = await import('path');
@@ -27,9 +29,9 @@ export async function createDirectoryStructure(): Promise<void> {
     try {
       await fs.mkdir(dir, { recursive: true });
       console.log(`  ✅ Created ${dir}/ directory`);
-    } catch (error) {
-      if (error.code !== 'EEXIST') {
-        throw error;
+    } catch (err) {
+      if ((err as any).code !== 'EEXIST') {
+        throw new Error(getErrorMessage(err));
       }
     }
   }

@@ -9,6 +9,7 @@ import { SwarmCoordinator } from '../../coordination/swarm-coordinator.js';
 import { BackgroundExecutor } from '../../coordination/background-executor.js';
 import { SwarmMemoryManager } from '../../memory/swarm-memory.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export async function swarmAction(ctx: CommandContext) {
   // First check if help is requested
   if (ctx.flags.help || ctx.flags.h) {
@@ -111,7 +112,7 @@ export async function swarmAction(ctx: CommandContext) {
         return;
       }
     } catch (err) {
-      warning(`Failed to launch blessed UI: ${(err as Error).message}`);
+      warning(`Failed to launch blessed UI: ${getErrorMessage(err)}`);
       console.log('Falling back to standard mode...');
       options.ui = false;
     }
@@ -233,7 +234,7 @@ export async function swarmAction(ctx: CommandContext) {
     }
     
   } catch (err) {
-    error(`Failed to execute swarm: ${(err as Error).message}`);
+    error(`Failed to execute swarm: ${getErrorMessage(err)}`);
   }
 }
 
@@ -449,7 +450,7 @@ exit \${PIPESTATUS[0]}`;
         console.log(`    ✓ Task completed`);
         
       } catch (err) {
-        throw err;
+        throw new Error(getErrorMessage(err));
       }
     } else {
       // Simulate execution if claude CLI not available
@@ -493,9 +494,9 @@ exit \${PIPESTATUS[0]}`;
       }
     }
   } catch (err) {
-    // Log error but continue
-    console.log(`    ⚠️  Error executing task: ${(err as Error).message}`);
-    await Deno.writeTextFile(`${agentDir}/error.txt`, (err as Error).message);
+    // Log err but continue
+    console.log(`    ⚠️  Error executing task: ${getErrorMessage(err)}`);
+    await Deno.writeTextFile(`${agentDir}/err.txt`, getErrorMessage(err));
   }
 }
 

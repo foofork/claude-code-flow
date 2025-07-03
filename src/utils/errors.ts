@@ -6,12 +6,17 @@
  * Base error class for all Claude-Flow errors
  */
 export class ClaudeFlowError extends Error {
+  public override readonly code: string;
+  public readonly details?: unknown;
+  
   constructor(
     message: string,
-    public readonly code: string,
-    public readonly details?: unknown,
+    code: string,
+    details?: unknown,
   ) {
     super(message);
+    this.code = code;
+    this.details = details;
     this.name = 'ClaudeFlowError';
     Error.captureStackTrace(this, this.constructor);
   }
@@ -38,18 +43,20 @@ export class TerminalError extends ClaudeFlowError {
 }
 
 export class TerminalSpawnError extends TerminalError {
-  override readonly code = 'TERMINAL_SPAWN_ERROR';
+  override readonly code = 'TERMINAL_SPAWN_ERROR' as const;
   
   constructor(message: string, details?: unknown) {
     super(message, details);
+    this.name = 'TerminalSpawnError';
   }
 }
 
 export class TerminalCommandError extends TerminalError {
-  override readonly code = 'TERMINAL_COMMAND_ERROR';
+  override readonly code = 'TERMINAL_COMMAND_ERROR' as const;
   
   constructor(message: string, details?: unknown) {
     super(message, details);
+    this.name = 'TerminalCommandError';
   }
 }
 
@@ -64,18 +71,20 @@ export class MemoryError extends ClaudeFlowError {
 }
 
 export class MemoryBackendError extends MemoryError {
-  override readonly code = 'MEMORY_BACKEND_ERROR';
+  override readonly code = 'MEMORY_BACKEND_ERROR' as const;
   
   constructor(message: string, details?: unknown) {
     super(message, details);
+    this.name = 'MemoryBackendError';
   }
 }
 
 export class MemoryConflictError extends MemoryError {
-  override readonly code = 'MEMORY_CONFLICT_ERROR';
+  override readonly code = 'MEMORY_CONFLICT_ERROR' as const;
   
   constructor(message: string, details?: unknown) {
     super(message, details);
+    this.name = 'MemoryConflictError';
   }
 }
 
@@ -90,7 +99,7 @@ export class CoordinationError extends ClaudeFlowError {
 }
 
 export class DeadlockError extends CoordinationError {
-  override readonly code = 'DEADLOCK_ERROR';
+  override readonly code = 'DEADLOCK_ERROR' as const;
   
   constructor(
     message: string,
@@ -197,7 +206,7 @@ export class InitializationError extends SystemError {
     const message = componentOrMessage.includes('initialize') 
       ? componentOrMessage 
       : `Failed to initialize ${componentOrMessage}`;
-    super(message, details ? { component: componentOrMessage, ...details } : { component: componentOrMessage });
+    super(message, details ? { component: componentOrMessage, ...(details as Record<string, unknown>) } : { component: componentOrMessage });
   }
 }
 

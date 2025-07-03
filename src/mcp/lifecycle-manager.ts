@@ -9,6 +9,7 @@ import { MCPConfig, MCPSession, MCPMetrics, HealthStatus } from '../utils/types.
 import { MCPError } from '../utils/errors.js';
 import { IMCPServer } from './server.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export enum LifecycleState {
   STOPPED = 'stopped',
   STARTING = 'starting',
@@ -119,10 +120,10 @@ export class MCPLifecycleManager extends EventEmitter {
 
       this.setState(LifecycleState.RUNNING);
       this.logger.info('MCP server started successfully');
-    } catch (error) {
-      this.setState(LifecycleState.ERROR, error as Error);
-      this.logger.error('Failed to start MCP server', error);
-      throw error;
+    } catch (err) {
+      this.setState(LifecycleState.ERROR, err as Error);
+      this.logger.error('Failed to start MCP server', err);
+      throw err;
     }
   }
 
@@ -170,10 +171,10 @@ export class MCPLifecycleManager extends EventEmitter {
       this.restartAttempts++;
 
       this.logger.info('MCP server restarted successfully');
-    } catch (error) {
-      this.setState(LifecycleState.ERROR, error as Error);
-      this.logger.error('Failed to restart MCP server', error);
-      throw error;
+    } catch (err) {
+      this.setState(LifecycleState.ERROR, err as Error);
+      this.logger.error('Failed to restart MCP server', err);
+      throw err;
     }
   }
 
@@ -237,9 +238,9 @@ export class MCPLifecycleManager extends EventEmitter {
       });
 
       return result;
-    } catch (error) {
-      result.error = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error('Health check failed', error);
+    } catch (err) {
+      result.error = err instanceof Error ? getErrorMessage(err) : 'Unknown err';
+      this.logger.error('Health check failed', err);
       return result;
     }
   }
@@ -292,8 +293,8 @@ export class MCPLifecycleManager extends EventEmitter {
     if (this.server) {
       try {
         await this.server.stop();
-      } catch (error) {
-        this.logger.error('Error during force stop', error);
+      } catch (err) {
+        this.logger.error('Error during force stop', err);
       }
       this.server = undefined;
     }
@@ -415,8 +416,8 @@ export class MCPLifecycleManager extends EventEmitter {
           this.logger.warn('Health check failed', health);
           this.handleServerError(new Error(health.error || 'Health check failed'));
         }
-      } catch (error) {
-        this.logger.error('Health check error', error);
+      } catch (err) {
+        this.logger.error('Health check err', err);
       }
     }, this.config.healthCheckInterval);
 
@@ -449,10 +450,10 @@ export class MCPLifecycleManager extends EventEmitter {
       this.startTime = undefined;
       
       this.logger.info('MCP server stopped successfully');
-    } catch (error) {
-      this.logger.error('Error during shutdown', error);
+    } catch (err) {
+      this.logger.error('Error during shutdown', err);
       await this.forceStop();
-      throw error;
+      throw err;
     }
   }
 }

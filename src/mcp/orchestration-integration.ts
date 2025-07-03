@@ -12,6 +12,7 @@ import { MCPLifecycleManager, LifecycleState } from './lifecycle-manager.js';
 import { MCPPerformanceMonitor } from './performance-monitor.js';
 import { MCPProtocolManager } from './protocol-manager.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface OrchestrationComponents {
   orchestrator?: any;
   swarmCoordinator?: any;
@@ -151,9 +152,9 @@ export class MCPOrchestrationIntegration extends EventEmitter {
 
       this.logger.info('MCP orchestration integration started successfully');
       this.emit('integrationStarted');
-    } catch (error) {
-      this.logger.error('Failed to start MCP orchestration integration', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to start MCP orchestration integration', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -185,9 +186,9 @@ export class MCPOrchestrationIntegration extends EventEmitter {
 
       this.logger.info('MCP orchestration integration stopped');
       this.emit('integrationStopped');
-    } catch (error) {
-      this.logger.error('Error stopping MCP orchestration integration', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Error stopping MCP orchestration integration', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -247,9 +248,9 @@ export class MCPOrchestrationIntegration extends EventEmitter {
     try {
       await this.connectComponent(component);
       this.logger.info('Successfully reconnected to component', { component });
-    } catch (error) {
-      this.logger.error('Failed to reconnect to component', { component, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to reconnect to component', { component, err });
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -706,12 +707,12 @@ export class MCPOrchestrationIntegration extends EventEmitter {
 
       this.logger.info('Component connected', { component });
       this.emit('componentConnected', { component });
-    } catch (error) {
+    } catch (err) {
       status.connected = false;
       status.healthy = false;
-      status.error = error instanceof Error ? error.message : 'Unknown error';
+      status.error = err instanceof Error ? getErrorMessage(err) : 'Unknown err';
       
-      this.logger.error('Failed to connect component', { component, error });
+      this.logger.error('Failed to connect component', { component, err });
       this.scheduleReconnect(component);
     }
   }
@@ -743,7 +744,7 @@ export class MCPOrchestrationIntegration extends EventEmitter {
       this.reconnectTimers.delete(component);
       try {
         await this.connectComponent(component);
-      } catch (error) {
+      } catch (err) {
         // Will be handled by connectComponent
       }
     }, this.orchestrationConfig.reconnectDelay);
@@ -773,10 +774,10 @@ export class MCPOrchestrationIntegration extends EventEmitter {
         status.healthy = healthy;
         status.lastCheck = new Date();
         status.error = undefined;
-      } catch (error) {
+      } catch (err) {
         status.healthy = false;
-        status.error = error instanceof Error ? error.message : 'Health check failed';
-        this.logger.warn('Component health check failed', { component, error });
+        status.error = err instanceof Error ? getErrorMessage(err) : 'Health check failed';
+        this.logger.warn('Component health check failed', { component, err });
       }
     }
   }

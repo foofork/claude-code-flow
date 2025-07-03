@@ -5,7 +5,9 @@
 import { Command } from '@cliffy/command';
 import { colors } from '@cliffy/ansi/colors';
 import { spawn } from 'node:child_process';
+import process from 'node:process';
 import { generateId } from '../../utils/helpers.js';
+import { getErrorMessage } from '../../utils/error-handler.js';
 
 export const claudeCommand = new Command()
   .description('Manage Claude instances')
@@ -89,8 +91,8 @@ export const claudeCommand = new Command()
           }
         });
         
-        claude.on('error', (err) => {
-          console.error(colors.red('Failed to spawn Claude:'), err.message);
+        claude.on('error', (err: unknown) => {
+          console.error(colors.red('Failed to spawn Claude:'), getErrorMessage(err));
         });
         
         claude.on('exit', (code) => {
@@ -102,7 +104,7 @@ export const claudeCommand = new Command()
         });
         
       } catch (error) {
-        console.error(colors.red('Failed to spawn Claude:'), (error as Error).message);
+        console.error(colors.red('Failed to spawn Claude:'), getErrorMessage(error));
       }
     }),
   )
@@ -157,8 +159,8 @@ export const claudeCommand = new Command()
             
             // Wait for completion if sequential
             if (!workflow.parallel) {
-              await new Promise((resolve) => {
-                claude.on('exit', resolve);
+              await new Promise<void>((resolve) => {
+                claude.on('exit', () => resolve());
               });
             }
           }
@@ -169,7 +171,7 @@ export const claudeCommand = new Command()
         }
         
       } catch (error) {
-        console.error(colors.red('Failed to process workflow:'), (error as Error).message);
+        console.error(colors.red('Failed to process workflow:'), getErrorMessage(error));
       }
     }),
   );

@@ -1,7 +1,8 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
-import { logger } from '../logger';
+import * as path from 'node:path';
+import { logger } from '../core/logger.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface PromptConfig {
   sourceDirectories: string[];
   destinationDirectory: string;
@@ -76,7 +77,7 @@ export class PromptConfigManager {
       // Merge with defaults
       this.config = this.mergeConfig(DEFAULT_CONFIG, userConfig);
       logger.info(`Loaded config from ${this.configPath}`);
-    } catch (error) {
+    } catch (err) {
       logger.info('Using default configuration');
     }
     
@@ -242,7 +243,7 @@ export class PromptValidator {
       if (frontMatterMatch) {
         try {
           metadata = this.parseFrontMatter(frontMatterMatch[1]);
-        } catch (error) {
+        } catch (err) {
           issues.push('Invalid front matter format');
         }
       }
@@ -259,10 +260,10 @@ export class PromptValidator {
         metadata
       };
       
-    } catch (error) {
+    } catch (err) {
       return {
         valid: false,
-        issues: [`Failed to read file: ${error.message}`]
+        issues: [`Failed to read file: ${getErrorMessage(err)}`]
       };
     }
   }

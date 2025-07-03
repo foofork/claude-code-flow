@@ -3,13 +3,14 @@
  */
 
 import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { MigrationAnalysis, MigrationRisk } from './types';
 import { logger } from './logger';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { glob } from 'glob';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export class MigrationAnalyzer {
   private optimizedCommands = [
     'sparc', 'sparc-architect', 'sparc-code', 'sparc-tdd',
@@ -115,7 +116,7 @@ export class MigrationAnalyzer {
             !['architect', 'code', 'tdd', 'debug', 'docs-writer'].includes(mode)
           )
         };
-      } catch (error) {
+      } catch (err) {
         analysis.migrationRisks.push({
           level: 'medium',
           description: 'Invalid .roomodes file',

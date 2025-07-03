@@ -2,14 +2,15 @@
  * Simple orchestrator implementation for Node.js compatibility
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -380,8 +381,8 @@ function startWebUI(host: string, port: number) {
       executeCliCommand(command, null);
       
       res.json({ success: true, message: 'Command executed' });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (err) {
+      res.status(500).json({ error: getErrorMessage(err) });
     }
   });
   
@@ -447,10 +448,10 @@ function startWebUI(host: string, port: number) {
         if (data.type === 'command') {
           handleCliCommand(data.data, ws);
         }
-      } catch (error) {
+      } catch (err) {
         ws.send(JSON.stringify({
-          type: 'error',
-          data: `Invalid message format: ${error.message}`
+          type: 'err',
+          data: `Invalid message format: ${getErrorMessage(err)}`
         }));
       }
     });
@@ -468,7 +469,7 @@ function startWebUI(host: string, port: number) {
   
   // Helper function to send response to specific client or broadcast
   function sendResponse(ws: any, data: any) {
-    if (ws) {
+    if (ws !== undefined && ws !== null) {
       ws.send(JSON.stringify(data));
     } else {
       broadcastToClients(data);
@@ -492,11 +493,11 @@ function startWebUI(host: string, port: number) {
       // Execute the command
       executeCliCommand(command, ws);
       
-    } catch (error) {
-      const errorMsg = `Error executing command: ${error.message}`;
+    } catch (err) {
+      const errorMsg = `Error executing command: ${getErrorMessage(err)}`;
       outputHistory.push(errorMsg);
       sendResponse(ws, {
-        type: 'error',
+        type: 'err',
         data: errorMsg
       });
     }
@@ -658,16 +659,16 @@ function startWebUI(host: string, port: number) {
   }
 
   return new Promise((resolve, reject) => {
-    server.on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
         console.error(`\n❌ Port ${port} is already in use`);
         console.log(`💡 Try a different port: claude-flow start --ui --port ${port + 1}`);
         console.log(`💡 Or stop the process using port ${port}: lsof -ti:${port} | xargs kill -9`);
         componentStatus.webUI = false;
-        reject(err);
+        reject(error);
       } else {
-        console.error('❌ Web UI server error:', err.message);
-        reject(err);
+        console.error('❌ Web UI server error:', getErrorMessage(error));
+        reject(error);
       }
     });
 
@@ -720,12 +721,12 @@ export async function startOrchestrator(options: any) {
     const port = options.port || 3000;
     try {
       await startWebUI(host, port);
-    } catch (err: any) {
-      if (err.code === 'EADDRINUSE') {
+    } catch (error: any) {
+      if (error.code === 'EADDRINUSE') {
         console.log('\n⚠️  Web UI could not start due to port conflict');
         console.log('   Orchestrator is running without Web UI');
       } else {
-        console.error('\n⚠️  Web UI failed to start:', err.message);
+        console.error('\n⚠️  Web UI failed to start:', getErrorMessage(error));
       }
     }
   }

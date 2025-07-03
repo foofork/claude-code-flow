@@ -9,6 +9,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { Logger } from '../core/logger.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface DirectExecutorConfig {
   logger?: Logger;
   timeout?: number;
@@ -74,12 +75,12 @@ export class DirectTaskExecutor {
         },
         validated: true
       };
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Task execution failed', {
         taskId: task.id.id,
-        error: error.message
+        error: getErrorMessage(err)
       });
-      throw error;
+      throw err;
     }
   }
 
@@ -334,8 +335,8 @@ function prompt() {
         try {
           const result = calc.sqrt(parseFloat(num));
           console.log(\`Result: \${result}\\n\`);
-        } catch (error) {
-          console.log(\`Error: \${error.message}\\n\`);
+        } catch (err) {
+          console.log(\`Error: \${getErrorMessage(err)}\\n\`);
         }
         prompt();
       });
@@ -370,8 +371,8 @@ function prompt() {
             }
 
             console.log(\`Result: \${result}\\n\`);
-          } catch (error) {
-            console.log(\`Error: \${error.message}\\n\`);
+          } catch (err) {
+            console.log(\`Error: \${getErrorMessage(err)}\\n\`);
           }
           prompt();
         });
@@ -1029,7 +1030,7 @@ app.post('/api/register', async (req, res) => {
     );
     
     res.status(201).json({ token, user: { id: user.id, username: user.username } });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: 'Registration failed' });
   }
 });
@@ -1059,7 +1060,7 @@ app.post('/api/login', async (req, res) => {
     );
     
     res.json({ token, user: { id: user.id, username: user.username } });
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: 'Login failed' });
   }
 });
@@ -1089,7 +1090,7 @@ module.exports = (req, res, next) => {
     const verified = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
     req.user = verified;
     next();
-  } catch (error) {
+  } catch (err) {
     res.status(401).json({ error: 'Invalid token' });
   }
 };

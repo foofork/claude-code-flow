@@ -9,6 +9,7 @@ import { configManager } from '../../core/config.js';
 import { MCPServer } from '../../mcp/server.js';
 import { eventBus } from '../../core/event-bus.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 let mcpServer: MCPServer | null = null;
 
 export const mcpCommand = new Command()
@@ -47,8 +48,8 @@ export const mcpCommand = new Command()
         console.log(colors.cyan(`📡 Server URL: http://${options.host}:${options.port}`));
         console.log(colors.cyan(`🔧 Available tools: Research, Code, Terminal, Memory`));
         console.log(colors.cyan(`📚 API documentation: http://${options.host}:${options.port}/docs`));
-      } catch (error) {
-        console.error(colors.red(`❌ Failed to start MCP server: ${(error as Error).message}`));
+      } catch (err) {
+        console.error(colors.red(`❌ Failed to start MCP server: ${getErrorMessage(err)}`));
         Deno.exit(1);
       }
     })
@@ -64,8 +65,8 @@ export const mcpCommand = new Command()
         } else {
           console.log(colors.yellow('⚠️  MCP server is not running'));
         }
-      } catch (error) {
-        console.error(colors.red(`❌ Failed to stop MCP server: ${(error as Error).message}`));
+      } catch (err) {
+        console.error(colors.red(`❌ Failed to stop MCP server: ${getErrorMessage(err)}`));
         Deno.exit(1);
       }
     })
@@ -88,8 +89,8 @@ export const mcpCommand = new Command()
         } else {
           console.log(colors.gray('Use "claude-flow mcp start" to start the server'));
         }
-      } catch (error) {
-        console.error(colors.red(`❌ Failed to get MCP status: ${(error as Error).message}`));
+      } catch (err) {
+        console.error(colors.red(`❌ Failed to get MCP status: ${getErrorMessage(err)}`));
       }
     })
   )
@@ -127,8 +128,8 @@ export const mcpCommand = new Command()
         
         console.log(colors.cyan('MCP Configuration:'));
         console.log(JSON.stringify(config.mcp, null, 2));
-      } catch (error) {
-        console.error(colors.red(`❌ Failed to show MCP config: ${(error as Error).message}`));
+      } catch (err) {
+        console.error(colors.red(`❌ Failed to show MCP config: ${getErrorMessage(err)}`));
       }
     })
   )
@@ -147,8 +148,8 @@ export const mcpCommand = new Command()
         await mcpServer.start();
         
         console.log(colors.green(`✅ MCP server restarted on ${config.mcp.host}:${config.mcp.port}`));
-      } catch (error) {
-        console.error(colors.red(`❌ Failed to restart MCP server: ${(error as Error).message}`));
+      } catch (err) {
+        console.error(colors.red(`❌ Failed to restart MCP server: ${getErrorMessage(err)}`));
         Deno.exit(1);
       }
     })

@@ -3,9 +3,10 @@
  */
 
 import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as chalk from 'chalk';
+import * as path from 'node:path';
+import chalk from 'chalk';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface LogEntry {
   timestamp: Date;
   level: 'info' | 'warn' | 'error' | 'success' | 'debug';
@@ -77,9 +78,9 @@ export class MigrationLogger {
 
       const logLine = JSON.stringify(entry) + '\n';
       await fs.appendFile(this.logFile, logLine);
-    } catch (error) {
+    } catch (err) {
       // Prevent recursive logging
-      console.error('Failed to write to log file:', error.message);
+      console.error('Failed to write to log file:', getErrorMessage(err));
     }
   }
 

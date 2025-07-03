@@ -14,6 +14,7 @@ import { MCPRequest, MCPResponse, MCPNotification, MCPConfig } from '../../utils
 import { ILogger } from '../../core/logger.js';
 import { MCPTransportError } from '../../utils/errors.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * HTTP transport implementation
  */
@@ -76,8 +77,8 @@ export class HttpTransport implements ITransport {
 
       this.running = true;
       this.logger.info('HTTP transport started');
-    } catch (error) {
-      throw new MCPTransportError('Failed to start HTTP transport', { error });
+    } catch (err) {
+      throw new MCPTransportError('Failed to start HTTP transport', { error: getErrorMessage(err) });
     }
   }
 
@@ -201,11 +202,11 @@ export class HttpTransport implements ITransport {
     });
 
     // Error handler
-    this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      this.logger.error('Express error', err);
+    this.app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      this.logger.error('Express error', error);
       res.status(500).json({ 
         error: 'Internal server error',
-        message: err.message 
+        message: getErrorMessage(error) 
       });
     });
   }
@@ -243,10 +244,10 @@ export class HttpTransport implements ITransport {
             const response = await this.handleRequestMessage(message as MCPRequest);
             ws.send(JSON.stringify(response));
           }
-        } catch (error) {
-          this.logger.error('Error processing WebSocket message', error);
+        } catch (err) {
+          this.logger.error('Error processing WebSocket message', err);
           
-          // Send error response if it was a request
+          // Send err response if it was a request
           try {
             const parsed = JSON.parse(data.toString());
             if (parsed.id !== undefined) {
@@ -255,12 +256,12 @@ export class HttpTransport implements ITransport {
                 id: parsed.id,
                 error: {
                   code: -32603,
-                  message: 'Internal error',
+                  message: 'Internal err',
                 },
               }));
             }
           } catch {
-            // Ignore parse errors for error responses
+            // Ignore parse errors for err responses
           }
         }
       });
@@ -333,16 +334,16 @@ export class HttpTransport implements ITransport {
         const response = await this.handleRequestMessage(mcpMessage as MCPRequest);
         res.json(response);
       }
-    } catch (error) {
-      this.logger.error('Error handling JSON-RPC request', error);
+    } catch (err) {
+      this.logger.error('Error handling JSON-RPC request', err);
 
       res.status(500).json({
         jsonrpc: '2.0',
         id: null,
         error: {
           code: -32603,
-          message: 'Internal error',
-          data: error instanceof Error ? error.message : String(error),
+          message: 'Internal err',
+          data: err instanceof Error ? getErrorMessage(err) : getErrorMessage(err),
         },
       });
     }
@@ -364,16 +365,16 @@ export class HttpTransport implements ITransport {
 
     try {
       return await this.requestHandler(request);
-    } catch (error) {
-      this.logger.error('Request handler error', { request, error });
+    } catch (err) {
+      this.logger.error('Request handler err', { request, err });
       
       return {
         jsonrpc: '2.0',
         id: request.id,
         error: {
           code: -32603,
-          message: 'Internal error',
-          data: error instanceof Error ? error.message : String(error),
+          message: 'Internal err',
+          data: err instanceof Error ? getErrorMessage(err) : getErrorMessage(err),
         },
       };
     }
@@ -389,9 +390,9 @@ export class HttpTransport implements ITransport {
 
     try {
       await this.notificationHandler(notification);
-    } catch (error) {
-      this.logger.error('Notification handler error', { notification, error });
-      // Notifications don't send error responses
+    } catch (err) {
+      this.logger.error('Notification handler err', { notification, err });
+      // Notifications don't send err responses
     }
   }
 
@@ -447,8 +448,8 @@ export class HttpTransport implements ITransport {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(message);
         }
-      } catch (error) {
-        this.logger.error('Failed to send notification to WebSocket', error);
+      } catch (err) {
+        this.logger.error('Failed to send notification to WebSocket', err);
       }
     }
     

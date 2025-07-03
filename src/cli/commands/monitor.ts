@@ -7,6 +7,42 @@ import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 import { formatProgressBar, formatDuration, formatStatusIndicator } from '../formatter.js';
 
+// Helper function to get error message
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+// Type definitions
+enum ComponentStatusType {
+  HEALTHY = 'healthy',
+  WARNING = 'warning',
+  ERROR = 'error',
+  OFFLINE = 'offline'
+}
+
+interface ComponentStatus {
+  name?: string;
+  status: string;
+  health?: number;
+  load: number;
+  uptime: number;
+  errors: number;
+  lastError?: string;
+}
+
+interface AlertData {
+  id: string;
+  timestamp: number;
+  type?: 'info' | 'warning' | 'error' | 'critical';
+  level?: 'info' | 'warning' | 'error' | 'critical';
+  component: string;
+  message: string;
+  acknowledged?: boolean;
+}
+
 export const monitorCommand = new Command()
   .description('Start live monitoring dashboard')
   .option('-i, --interval <seconds:number>', 'Update interval in seconds', { default: 2 })
@@ -35,6 +71,9 @@ class Dashboard {
   private data: MonitorData[] = [];
   private maxDataPoints = 60; // 2 minutes at 2-second intervals
   private running = true;
+  private alerts: any[] = [];
+  private startTime: number = Date.now();
+  private exportData: any[] = [];
 
   constructor(private options: any) {}
 
@@ -71,8 +110,8 @@ class Dashboard {
 
         this.render();
         await new Promise(resolve => setTimeout(resolve, this.options.interval * 1000));
-      } catch (error) {
-        this.renderError(error);
+      } catch (err) {
+        this.renderError(err);
         await new Promise(resolve => setTimeout(resolve, this.options.interval * 1000));
       }
     }
@@ -301,11 +340,12 @@ class Dashboard {
     console.log(colors.red.bold('Monitor Error'));
     console.log('─'.repeat(40));
     
-    if ((error as Error).message.includes('ECONNREFUSED')) {
+    const errorMsg = getErrorMessage(error);
+    if (errorMsg.includes('ECONNREFUSED')) {
       console.log(colors.red('✗ Cannot connect to Claude-Flow'));
       console.log(colors.gray('Make sure Claude-Flow is running with: claude-flow start'));
     } else {
-      console.log(colors.red('Error:'), (error as Error).message);
+      console.log(colors.red('Error:'), errorMsg);
     }
     
     console.log('\n' + colors.gray('Retrying in ') + colors.yellow(`${this.options.interval}s...`));
@@ -522,7 +562,7 @@ class Dashboard {
       await Deno.writeTextFile(this.options.export, JSON.stringify(exportData, null, 2));
       console.log(colors.green(`✓ Monitoring data exported to ${this.options.export}`));
     } catch (error) {
-      console.error(colors.red('Failed to export data:'), (error as Error).message);
+      console.error(colors.red('Failed to export data:'), getErrorMessage(error));
     }
   }
 }

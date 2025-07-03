@@ -1,8 +1,12 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as path from 'node:path';
 import { Worker } from 'worker_threads';
 import { PromptCopier, CopyOptions, CopyResult, FileInfo } from './prompt-copier';
-import { logger } from '../logger';
+import { logger } from '../core/logger.js';
+import { getErrorMessage } from '../utils/error-handler.js';
+
+// Re-export types from prompt-copier
+export type { CopyOptions, CopyResult } from './prompt-copier';
 
 interface WorkerPool {
   workers: Worker[];
@@ -18,7 +22,7 @@ export class EnhancedPromptCopier extends PromptCopier {
     super(options);
   }
 
-  protected async copyFilesParallel(): Promise<void> {
+  protected override async copyFilesParallel(): Promise<void> {
     const workerCount = Math.min(this.options.maxWorkers, this.fileQueue.length);
     
     // Initialize worker pool
@@ -186,7 +190,7 @@ export class EnhancedPromptCopier extends PromptCopier {
   }
 
   // Override verification to use worker results
-  protected async verifyFiles(): Promise<void> {
+  protected override async verifyFiles(): Promise<void> {
     logger.info('Verifying copied files...');
     
     for (const file of this.fileQueue) {
@@ -220,7 +224,7 @@ export class EnhancedPromptCopier extends PromptCopier {
       } catch (error) {
         this.errors.push({
           file: file.path,
-          error: error.message,
+          error: getErrorMessage(error),
           phase: 'verify'
         });
       }

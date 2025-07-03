@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { ILogger } from '../core/logger.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 // === INTERFACES ===
 
 export interface MemoryEntry {
@@ -353,9 +354,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('store', Date.now() - startTime);
       return entryId;
 
-    } catch (error) {
-      this.recordMetric('store-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('store-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -406,9 +407,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('retrieve', Date.now() - startTime);
       return entry;
 
-    } catch (error) {
-      this.recordMetric('retrieve-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('retrieve-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -464,9 +465,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('update', Date.now() - startTime);
       return true;
 
-    } catch (error) {
-      this.recordMetric('update-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('update-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -497,9 +498,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('delete', Date.now() - startTime);
       return true;
 
-    } catch (error) {
-      this.recordMetric('delete-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('delete-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -578,9 +579,9 @@ export class AdvancedMemoryManager extends EventEmitter {
         aggregations
       };
 
-    } catch (error) {
-      this.recordMetric('query-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('query-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -662,9 +663,9 @@ export class AdvancedMemoryManager extends EventEmitter {
         checksum
       };
 
-    } catch (error) {
-      this.recordMetric('export-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('export-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -747,8 +748,8 @@ export class AdvancedMemoryManager extends EventEmitter {
               results.conflicts.push(result.message || 'Unknown conflict');
               break;
           }
-        } catch (error) {
-          results.conflicts.push(`Error importing '${item.key}': ${error.message}`);
+        } catch (err) {
+          results.conflicts.push(`Error importing '${item.key}': ${getErrorMessage(err)}`);
         }
       }
 
@@ -758,9 +759,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('import', Date.now() - startTime);
       return results;
 
-    } catch (error) {
-      this.recordMetric('import-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('import-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -773,9 +774,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       const stats = this.calculateStatistics();
       this.recordMetric('stats', Date.now() - startTime);
       return stats;
-    } catch (error) {
-      this.recordMetric('stats-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('stats-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -943,9 +944,9 @@ export class AdvancedMemoryManager extends EventEmitter {
       this.recordMetric('cleanup', Date.now() - startTime);
       return results;
 
-    } catch (error) {
-      this.recordMetric('cleanup-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('cleanup-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -1757,8 +1758,8 @@ export class AdvancedMemoryManager extends EventEmitter {
           removeUnaccessed: 7, // Remove entries not accessed in 7 days
           compressEligible: true
         });
-      } catch (error) {
-        this.logger.error('Auto cleanup failed', error);
+      } catch (err) {
+        this.logger.error('Auto cleanup failed', err);
       }
     }, this.config.cleanupInterval);
   }
@@ -1788,7 +1789,7 @@ export class AdvancedMemoryManager extends EventEmitter {
         }
         
         this.logger.info(`Loaded ${entriesArray.length} entries from persistence`);
-      } catch (error) {
+      } catch (err) {
         // File doesn't exist or is corrupted
         this.logger.info('No persisted entries found, starting fresh');
       }
@@ -1798,8 +1799,8 @@ export class AdvancedMemoryManager extends EventEmitter {
         await this.rebuildIndex();
       }
       
-    } catch (error) {
-      this.logger.error('Failed to load persisted data', error);
+    } catch (err) {
+      this.logger.error('Failed to load persisted data', err);
     }
   }
 
@@ -1811,8 +1812,8 @@ export class AdvancedMemoryManager extends EventEmitter {
       await fs.writeFile(dataFile, JSON.stringify(entriesArray, null, 2));
       this.logger.info(`Persisted ${entriesArray.length} entries`);
       
-    } catch (error) {
-      this.logger.error('Failed to persist data', error);
+    } catch (err) {
+      this.logger.error('Failed to persist data', err);
     }
   }
 
@@ -1834,8 +1835,8 @@ export class AdvancedMemoryManager extends EventEmitter {
       // Clean old backups
       await this.cleanOldBackups();
       
-    } catch (error) {
-      this.logger.error('Failed to create backup', error);
+    } catch (err) {
+      this.logger.error('Failed to create backup', err);
     }
   }
 
@@ -1865,8 +1866,8 @@ export class AdvancedMemoryManager extends EventEmitter {
         this.logger.debug(`Deleted old backup: ${file}`);
       }
       
-    } catch (error) {
-      this.logger.error('Failed to clean old backups', error);
+    } catch (err) {
+      this.logger.error('Failed to clean old backups', err);
     }
   }
 

@@ -1,10 +1,11 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
-import { join } from 'path';
-import { createHash } from 'crypto';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface AuditEntry {
   id: string;
   timestamp: Date;
@@ -400,9 +401,9 @@ export class AuditManager extends EventEmitter {
       await this.startAuditProcessing();
       
       this.logger.info('Audit Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Audit Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Audit Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -953,8 +954,8 @@ export class AuditManager extends EventEmitter {
       }
 
       this.logger.info(`Loaded ${this.frameworks.size} frameworks, ${this.auditTrails.size} trails, ${this.reports.size} reports`);
-    } catch (error) {
-      this.logger.warn('Failed to load some audit configurations', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load some audit configurations', { error: getErrorMessage(err) });
     }
   }
 
@@ -1079,8 +1080,8 @@ export class AuditManager extends EventEmitter {
       }
       
       this.logger.debug(`Flushed ${entries.length} audit entries`);
-    } catch (error) {
-      this.logger.error('Failed to flush audit buffer', { error });
+    } catch (err) {
+      this.logger.error('Failed to flush audit buffer', { error: getErrorMessage(err) });
       
       // Re-add entries to buffer for retry if configured
       if (this.configuration.collection.failureHandling === 'retry') {

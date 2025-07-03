@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
-import * as os from 'os';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { PromptCopier, copyPrompts } from '../prompt-copier';
 import { EnhancedPromptCopier, copyPromptsEnhanced } from '../prompt-copier-enhanced';
 import { PromptConfigManager, PromptValidator } from '../prompt-utils';

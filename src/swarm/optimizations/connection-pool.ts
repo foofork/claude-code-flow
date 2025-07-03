@@ -7,6 +7,7 @@ import { EventEmitter } from 'node:events';
 import { Logger } from '../../core/logger.js';
 import { ClaudeAPI } from '../../services/claude/api.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export interface PoolConfig {
   min: number;
   max: number;
@@ -181,10 +182,10 @@ export class ClaudeConnectionPool extends EventEmitter {
     try {
       // Simple health check - could be expanded
       return true;
-    } catch (error) {
+    } catch (err) {
       this.logger.warn('Connection health check failed', { 
         id: conn.id, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error' 
       });
       return false;
     }

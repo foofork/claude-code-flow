@@ -19,6 +19,7 @@ import {
   TaskPriority
 } from '../types.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export interface ExecutorConfig {
   connectionPool?: {
     min?: number;
@@ -135,33 +136,34 @@ export class OptimizedExecutor extends EventEmitter {
     }
     
     // Add to active executions
-    this.activeExecutions.add(task.id);
+    this.activeExecutions.add(task.id.id);
     
     // Queue the execution
     const result = await this.executionQueue.add(async () => {
       try {
         // Execute with connection pool
         const executionResult = await this.connectionPool.execute(async (api) => {
-          const response = await api.complete({
+          const response = await api.complete(JSON.stringify({
             messages: this.buildMessages(task),
             model: task.metadata?.model || 'claude-3-5-sonnet-20241022',
-            max_tokens: task.constraints.maxTokens || 4096,
+            max_tokens: task.metadata?.maxTokens || 4096,
             temperature: task.metadata?.temperature || 0.7
-          });
+          }));
           
+          const parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
           return {
             success: true,
-            output: response.content[0]?.text || '',
+            output: parsedResponse.content?.[0]?.text || '',
             usage: {
-              inputTokens: response.usage?.input_tokens || 0,
-              outputTokens: response.usage?.output_tokens || 0
+              inputTokens: parsedResponse.usage?.input_tokens || 0,
+              outputTokens: parsedResponse.usage?.output_tokens || 0
             }
           };
         });
         
         // Save result to file asynchronously
         if (this.config.fileOperations?.outputDir) {
-          const outputPath = `${this.config.fileOperations.outputDir}/${task.id}.json`;
+          const outputPath = `${this.config.fileOperations.outputDir}/${task.id.id}.json`;
           await this.fileManager.writeJSON(outputPath, {
             taskId: task.id,
             agentId: agentId.id,
@@ -172,14 +174,24 @@ export class OptimizedExecutor extends EventEmitter {
         
         // Create task result
         const taskResult: TaskResult = {
-          taskId: task.id,
-          agentId: agentId.id,
-          success: executionResult.success,
           output: executionResult.output,
-          error: undefined,
+          artifacts: {},
+          metadata: {
+            taskId: task.id.id,
+            agentId: agentId.id,
+            success: executionResult.success,
+            tokensUsed: executionResult.usage,
+            timestamp: new Date()
+          },
+          quality: 1.0,
+          completeness: 1.0,
+          accuracy: 1.0,
           executionTime: Date.now() - startTime,
-          tokensUsed: executionResult.usage,
-          timestamp: new Date()
+          resourcesUsed: {
+            inputTokens: executionResult.usage.inputTokens,
+            outputTokens: executionResult.usage.outputTokens
+          },
+          validated: false
         };
         
         // Cache result if enabled
@@ -194,7 +206,7 @@ export class OptimizedExecutor extends EventEmitter {
         
         // Record in history
         this.executionHistory.push({
-          taskId: task.id,
+          taskId: task.id.id,
           duration: taskResult.executionTime,
           status: 'success',
           timestamp: new Date()
@@ -204,7 +216,7 @@ export class OptimizedExecutor extends EventEmitter {
         if (this.config.monitoring?.slowTaskThreshold && 
             taskResult.executionTime > this.config.monitoring.slowTaskThreshold) {
           this.logger.warn('Slow task detected', {
-            taskId: task.id,
+            taskId: task.id.id,
             duration: taskResult.executionTime,
             threshold: this.config.monitoring.slowTaskThreshold
           });
@@ -213,40 +225,48 @@ export class OptimizedExecutor extends EventEmitter {
         this.emit('task:completed', taskResult);
         return taskResult;
         
-      } catch (error) {
+      } catch (err) {
         this.metrics.totalExecuted++;
         this.metrics.totalFailed++;
         
         const errorResult: TaskResult = {
-          taskId: task.id,
-          agentId: agentId.id,
-          success: false,
           output: '',
-          error: {
-            type: error instanceof Error ? error.constructor.name : 'UnknownError',
-            message: error instanceof Error ? error.message : 'Unknown error',
-            code: (error as any).code,
-            stack: error instanceof Error ? error.stack : undefined,
-            context: { taskId: task.id, agentId: agentId.id },
-            recoverable: this.isRecoverableError(error),
-            retryable: this.isRetryableError(error)
+          artifacts: {},
+          metadata: {
+            taskId: task.id.id,
+            agentId: agentId.id,
+            success: false,
+            error: {
+              type: err instanceof Error ? err.constructor.name : 'UnknownError',
+              message: err instanceof Error ? getErrorMessage(err) : 'Unknown err',
+              code: (err as any).code,
+              stack: err instanceof Error ? (err instanceof Error ? (err instanceof Error ? err.stack : undefined) : undefined) : undefined,
+              context: { taskId: task.id.id, agentId: agentId.id },
+              recoverable: this.isRecoverableError(err),
+              retryable: this.isRetryableError(err)
+  },
+            timestamp: new Date()
           },
+          quality: 0,
+          completeness: 0,
+          accuracy: 0,
           executionTime: Date.now() - startTime,
-          timestamp: new Date()
+          resourcesUsed: {},
+          validated: false
         };
         
         // Record in history
         this.executionHistory.push({
-          taskId: task.id,
+          taskId: task.id.id,
           duration: errorResult.executionTime,
           status: 'failed',
           timestamp: new Date()
         });
         
         this.emit('task:failed', errorResult);
-        throw error;
+        throw err;
       } finally {
-        this.activeExecutions.delete(task.id);
+        this.activeExecutions.delete(task.id.id);
       }
     });
     
@@ -276,7 +296,7 @@ export class OptimizedExecutor extends EventEmitter {
     // Add main task objective
     messages.push({
       role: 'user',
-      content: task.objective
+      content: task.description
     });
     
     // Add context if available
@@ -285,7 +305,7 @@ export class OptimizedExecutor extends EventEmitter {
         messages.push({
           role: 'assistant',
           content: 'Previous results:\n' + 
-            task.context.previousResults.map(r => r.output).join('\n\n')
+            task.context.previousResults.map((r: any) => r.output).join('\n\n')
         });
       }
       
@@ -293,7 +313,7 @@ export class OptimizedExecutor extends EventEmitter {
         messages.push({
           role: 'user',
           content: 'Related context:\n' + 
-            task.context.relatedTasks.map(t => t.objective).join('\n')
+            task.context.relatedTasks.map((t: any) => t.description || t.objective).join('\n')
         });
       }
     }
@@ -303,7 +323,7 @@ export class OptimizedExecutor extends EventEmitter {
   
   private getTaskCacheKey(task: TaskDefinition): string {
     // Create a cache key based on task properties
-    return `${task.type}-${task.objective}-${JSON.stringify(task.metadata || {})}`;
+    return `${task.type}-${task.description}-${JSON.stringify(task.metadata || {})}`;
   }
   
   private isRecoverableError(error: any): boolean {

@@ -24,15 +24,15 @@ export {
  * Main UI launcher that automatically selects the best available UI
  */
 export async function launchBestUI(): Promise<void> {
-  const { checkUISupport, launchUI, handleRawModeError } = await import('./fallback-handler.ts');
+  const { checkUISupport, launchUI, handleRawModeError } = await import('./fallback-handler.js');
   const support = checkUISupport();
   
   if (support.supported) {
     try {
       await launchUI();
-    } catch (error) {
-      if (error instanceof Error) {
-        await handleRawModeError(error, { 
+    } catch (err) {
+      if (err instanceof Error) {
+        await handleRawModeError(err, { 
           enableUI: true,
           fallbackMessage: 'Falling back to compatible UI mode',
           showHelp: true 
@@ -40,7 +40,7 @@ export async function launchBestUI(): Promise<void> {
       }
     }
   } else {
-    const { launchUI: launchCompatibleUI } = await import('./compatible-ui.ts');
+    const { launchUI: launchCompatibleUI } = await import('./compatible-ui.js');
     console.log('🔄 Using compatible UI mode for this environment');
     await launchCompatibleUI();
   }

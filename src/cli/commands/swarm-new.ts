@@ -10,6 +10,7 @@ import { success, error, warning, info } from "../cli-core.js";
 import type { CommandContext } from "../cli-core.js";
 import { SwarmStrategy, SwarmMode, AgentType } from '../../swarm/types.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export async function swarmAction(ctx: CommandContext) {
   // First check if help is requested
   if (ctx.flags.help || ctx.flags.h) {
@@ -60,12 +61,6 @@ export async function swarmAction(ctx: CommandContext) {
       qualityThreshold: options.qualityThreshold,
       reviewRequired: options.review,
       testingRequired: options.testing,
-      // Configure quiet logging unless verbose
-      logging: {
-        level: options.verbose ? 'debug' : 'error',
-        format: 'text',
-        destination: 'console'
-      },
       coordinationStrategy: {
         name: 'advanced',
         description: 'Advanced coordination with all features',
@@ -302,8 +297,8 @@ export async function swarmAction(ctx: CommandContext) {
           
           // Get current task info
           const tasks = coordinator.getTasks();
-          const activeTasks = tasks.filter(t => t.status === 'in_progress');
-          const pendingTasks = tasks.filter(t => t.status === 'pending');
+          const activeTasks = tasks.filter(t => t.status === 'running');
+          const pendingTasks = tasks.filter(t => t.status === 'queued');
           
           // Build status line
           let statusLine = `\r📊 Progress: ${status.tasks.completed}/${status.tasks.total} tasks`;
@@ -317,8 +312,8 @@ export async function swarmAction(ctx: CommandContext) {
             statusLine += ` | 🔄 ${agentName}: ${currentTask.name || currentTask.type} (${elapsed}s)`;
             
             // Track when task changes
-            if (currentTask.id !== lastTaskUpdate) {
-              lastTaskUpdate = currentTask.id;
+            if (currentTask.id.id !== lastTaskUpdate) {
+              lastTaskUpdate = currentTask.id.id;
               taskStartTime = Date.now();
               // Print task on new line for history
               console.log(`\n  📝 Starting: ${currentTask.name || currentTask.type} → ${agentName}`);
@@ -328,7 +323,7 @@ export async function swarmAction(ctx: CommandContext) {
           }
           
           // Add agent status
-          const activeAgents = status.agents.active;
+          const activeAgents = coordinator.getAgents().filter(a => a.status === 'busy' || a.status === 'idle').length;
           if (activeAgents > 0) {
             statusLine += ` | 🤖 ${activeAgents} agents active`;
           }
@@ -382,7 +377,7 @@ export async function swarmAction(ctx: CommandContext) {
     }, 100);
     
   } catch (err) {
-    error(`Failed to execute swarm: ${(err as Error).message}`);
+    error(`Failed to execute swarm: ${getErrorMessage(err)}`);
     if (options.verbose) {
       console.error((err as Error).stack);
     }
@@ -396,10 +391,10 @@ function parseSwarmOptions(flags: any) {
     strategy = 'auto';
   }
   
-  // Determine mode - if parallel flag is set, override mode to 'parallel'
+  // Determine mode - if parallel flag is set, override mode to 'distributed'
   let mode = flags.mode as SwarmMode || 'centralized';
   if (flags.parallel) {
-    mode = 'parallel';
+    mode = 'distributed';
   }
   
   return {
@@ -637,13 +632,13 @@ async function setupIncrementalUpdates(
         type: a.type,
         status: a.status,
         currentTask: a.currentTask,
-        tasksCompleted: a.completedTasks?.length || 0
+        tasksCompleted: a.metrics?.tasksCompleted || 0
       })),
       tasks: {
         total: initialTasks.length,
         completed: initialTasks.filter(t => t.status === 'completed').length,
-        inProgress: initialTasks.filter(t => t.status === 'in_progress').length,
-        pending: initialTasks.filter(t => t.status === 'pending').length,
+        inProgress: initialTasks.filter(t => t.status === 'running').length,
+        pending: initialTasks.filter(t => t.status === 'queued').length,
         failed: initialTasks.filter(t => t.status === 'failed').length
       }
     }, null, 2));
@@ -663,8 +658,8 @@ Tasks: ${initialStatus.tasks.completed}/${initialStatus.tasks.total} completed
 Agents: ${initialStatus.agents.active}/${initialStatus.agents.total} active
 `;
     await Deno.writeTextFile(`${swarmDir}/progress.txt`, initialProgressText);
-  } catch (error) {
-    console.warn('Failed to create initial status files:', error.message);
+  } catch (err) {
+    console.warn('Failed to create initial status files:', getErrorMessage(err));
   }
   
   // Set up periodic status updates - use longer interval for background mode
@@ -693,13 +688,13 @@ Agents: ${initialStatus.agents.active}/${initialStatus.agents.total} active
           type: a.type,
           status: a.status,
           currentTask: a.currentTask,
-          tasksCompleted: a.completedTasks?.length || 0
+          tasksCompleted: a.metrics?.tasksCompleted || 0
         })),
         tasks: {
           total: tasks.length,
           completed: tasks.filter(t => t.status === 'completed').length,
-          inProgress: tasks.filter(t => t.status === 'in_progress').length,
-          pending: tasks.filter(t => t.status === 'pending').length,
+          inProgress: tasks.filter(t => t.status === 'running').length,
+          pending: tasks.filter(t => t.status === 'queued').length,
           failed: tasks.filter(t => t.status === 'failed').length
         }
       }, null, 2));
@@ -714,9 +709,9 @@ Agents: ${initialStatus.agents.active}/${initialStatus.agents.total} active
           name: task.name,
           type: task.type,
           status: task.status,
-          assignedAgent: task.assignedAgent,
-          startTime: task.startTime,
-          endTime: task.endTime,
+          assignedAgent: task.assignedTo,
+          startTime: task.startedAt,
+          endTime: task.completedAt,
           result: task.result,
           error: task.error,
           metadata: task.metadata
@@ -732,19 +727,19 @@ Objective: ${objective?.name || 'Unknown'}
 Status: ${objective?.status || 'Unknown'}
 
 Tasks: ${status.tasks.completed}/${status.tasks.total} completed
-- In Progress: ${status.tasks.inProgress}
-- Pending: ${status.tasks.pending}
+- In Progress: ${tasks.filter(t => t.status === 'running').length}
+- Pending: ${tasks.filter(t => t.status === 'queued').length}
 - Failed: ${status.tasks.failed}
 
-Agents: ${status.agents.active}/${status.agents.total} active
+Agents: ${coordinator.getAgents().filter(a => a.status === 'busy' || a.status === 'idle').length}/${status.agents.total} active
 `;
       await Deno.writeTextFile(progressFile, progressText);
       
-    } catch (error) {
-      // Write error to debug file but don't disrupt swarm
+    } catch (err) {
+      // Write err to debug file but don't disrupt swarm
       try {
         await Deno.writeTextFile(`${swarmDir}/update-errors.log`, 
-          `${new Date().toISOString()}: ${error.message}\n`, { append: true });
+          `${new Date().toISOString()}: ${getErrorMessage(err)}\n`, { append: true });
       } catch (e) {
         // Ignore file write errors
       }
@@ -802,8 +797,8 @@ function setupSwarmMonitoring(
       };
       
       await Deno.writeTextFile(metricsFile, JSON.stringify(metrics) + '\n', { append: true });
-    } catch (error) {
-      console.warn('Failed to collect metrics:', error.message);
+    } catch (err) {
+      console.warn('Failed to collect metrics:', getErrorMessage(err));
     }
   }, 10000); // Every 10 seconds
   
@@ -963,7 +958,7 @@ async function launchSwarmUI(objective: string, options: any): Promise<void> {
       error(`Swarm UI exited with code ${code}`);
     }
   } catch (err) {
-    warning(`Failed to launch swarm UI: ${(err as Error).message}`);
+    warning(`Failed to launch swarm UI: ${getErrorMessage(err)}`);
     console.log('Falling back to standard mode...');
   }
 }

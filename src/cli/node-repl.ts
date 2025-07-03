@@ -5,12 +5,13 @@
 
 import readline from 'readline';
 import fs from 'fs/promises';
-import path from 'path';
-import { spawn } from 'child_process';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
 import colors from 'chalk';
 import Table from 'cli-table3';
 import inquirer from 'inquirer';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 interface REPLCommand {
   name: string;
   aliases?: string[];
@@ -347,8 +348,8 @@ export async function startNodeREPL(options: any = {}): Promise<void> {
           process.chdir(newDir);
           ctx.workingDirectory = process.cwd();
           console.log(colors.gray(`Changed to: ${ctx.workingDirectory}`));
-        } catch (error) {
-          console.error(colors.red('Error:'), error instanceof Error ? error.message : String(error));
+        } catch (err) {
+          console.error(colors.red('Error:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
         }
       },
     },
@@ -420,8 +421,8 @@ export async function startNodeREPL(options: any = {}): Promise<void> {
     if (command) {
       try {
         await command.handler(commandArgs, context);
-      } catch (error) {
-        console.error(colors.red('Command failed:'), error instanceof Error ? error.message : String(error));
+      } catch (err) {
+        console.error(colors.red('Command failed:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
       }
     } else {
       console.log(colors.red(`Unknown command: ${commandName}`));
@@ -445,8 +446,8 @@ export async function startNodeREPL(options: any = {}): Promise<void> {
   rl.on('line', async (input) => {
     try {
       await processCommand(input);
-    } catch (error) {
-      console.error(colors.red('REPL Error:'), error instanceof Error ? error.message : String(error));
+    } catch (err) {
+      console.error(colors.red('REPL Error:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
     }
     showPrompt();
   });
@@ -635,7 +636,7 @@ async function connectToOrchestrator(context: REPLContext, target?: string): Pro
       console.log(colors.red('✗ Connection failed'));
       console.log(colors.gray('Make sure Claude-Flow is running with: npx claude-flow start'));
     }
-  } catch (error) {
+  } catch (err) {
     context.connectionStatus = 'disconnected';
     console.log(colors.red('✗ Connection failed'));
     console.log(colors.gray('Make sure Claude-Flow is running with: npx claude-flow start'));
@@ -670,7 +671,7 @@ async function executeCliCommand(args: string[]): Promise<{ success: boolean; ou
     child.on('error', (err) => {
       resolve({
         success: false,
-        output: err.message,
+        output: getErrorMessage(err),
       });
     });
   });
@@ -694,8 +695,8 @@ async function handleAgentCommand(args: string[], context: REPLContext): Promise
   try {
     const result = await executeCliCommand(cliArgs);
     console.log(result.output);
-  } catch (error) {
-    console.error(colors.red('Error executing agent command:'), error instanceof Error ? error.message : String(error));
+  } catch (err) {
+    console.error(colors.red('Error executing agent command:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
   }
 }
 
@@ -715,8 +716,8 @@ async function handleTaskCommand(args: string[], context: REPLContext): Promise<
   try {
     const result = await executeCliCommand(cliArgs);
     console.log(result.output);
-  } catch (error) {
-    console.error(colors.red('Error executing task command:'), error instanceof Error ? error.message : String(error));
+  } catch (err) {
+    console.error(colors.red('Error executing task command:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
   }
 }
 
@@ -731,8 +732,8 @@ async function handleMemoryCommand(args: string[], context: REPLContext): Promis
   try {
     const result = await executeCliCommand(cliArgs);
     console.log(result.output);
-  } catch (error) {
-    console.error(colors.red('Error executing memory command:'), error instanceof Error ? error.message : String(error));
+  } catch (err) {
+    console.error(colors.red('Error executing memory command:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
   }
 }
 
@@ -747,8 +748,8 @@ async function handleSessionCommand(args: string[], context: REPLContext): Promi
   try {
     const result = await executeCliCommand(cliArgs);
     console.log(result.output);
-  } catch (error) {
-    console.error(colors.red('Error executing session command:'), error instanceof Error ? error.message : String(error));
+  } catch (err) {
+    console.error(colors.red('Error executing session command:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
   }
 }
 
@@ -768,8 +769,8 @@ async function handleWorkflowCommand(args: string[], context: REPLContext): Prom
   try {
     const result = await executeCliCommand(cliArgs);
     console.log(result.output);
-  } catch (error) {
-    console.error(colors.red('Error executing workflow command:'), error instanceof Error ? error.message : String(error));
+  } catch (err) {
+    console.error(colors.red('Error executing workflow command:'), err instanceof Error ? getErrorMessage(err) : getErrorMessage(err));
   }
 }
 

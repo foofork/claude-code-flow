@@ -1,8 +1,9 @@
 import { parentPort, workerData } from 'worker_threads';
 import * as fs from 'fs/promises';
-import * as path from 'path';
-import { createHash } from 'crypto';
+import * as path from 'node:path';
+import { createHash } from 'node:crypto';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 interface WorkerData {
   files: Array<{
     sourcePath: string;
@@ -47,11 +48,11 @@ async function copyFile(file: WorkerData['files'][0]): Promise<WorkerResult> {
       file: file.sourcePath,
       hash
     };
-  } catch (error) {
+  } catch (err) {
     return {
       success: false,
       file: file.sourcePath,
-      error: error instanceof Error ? error.message : String(error)
+      error: err instanceof Error ? getErrorMessage(err) : getErrorMessage(err)
     };
   }
 }

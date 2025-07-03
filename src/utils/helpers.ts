@@ -2,6 +2,8 @@
  * Utility helper functions for Claude-Flow
  */
 
+import { getErrorMessage } from './error-handler.js';
+
 // Utility helper functions
 
 /**
@@ -97,8 +99,8 @@ export async function retry<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(getErrorMessage(err));
 
       if (attempt === maxAttempts) {
         throw lastError;
@@ -499,9 +501,9 @@ export function circuitBreaker(
         const result = await timeout(fn(), options.timeout);
         recordSuccess();
         return result;
-      } catch (error) {
+      } catch (err) {
         recordFailure();
-        throw error;
+        throw new Error(getErrorMessage(err));
       }
     },
 

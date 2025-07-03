@@ -3,10 +3,11 @@
  * Integrates with TodoWrite/TodoRead for coordination and Memory for persistence
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { Task, TaskStatus, AgentProfile, Resource } from '../utils/types.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface TaskDependency {
   taskId: string;
   type: 'finish-to-start' | 'start-to-start' | 'finish-to-finish' | 'start-to-finish';
@@ -34,7 +35,7 @@ export interface TaskSchedule {
   timezone?: string;
 }
 
-export interface WorkflowTask extends Task {
+export interface WorkflowTask extends Omit<Task, 'dependencies'> {
   dependencies: TaskDependency[];
   resourceRequirements: ResourceRequirement[];
   schedule?: TaskSchedule;
@@ -422,7 +423,7 @@ export class TaskEngine extends EventEmitter {
     }));
 
     const edges: any[] = [];
-    for (const task of this.tasks.values()) {
+    for (const task of Array.from(this.tasks.values())) {
       for (const dep of task.dependencies) {
         edges.push({
           from: dep.taskId,
@@ -534,13 +535,13 @@ export class TaskEngine extends EventEmitter {
       execution.completedAt = new Date();
 
       this.emit('task:completed', { taskId: task.id, result: task.output });
-    } catch (error) {
+    } catch (err) {
       task.status = 'failed';
-      task.error = error as Error;
+      task.error = err as Error;
       execution.status = 'failed';
       execution.completedAt = new Date();
 
-      this.emit('task:failed', { taskId: task.id, error });
+      this.emit('task:failed', { taskId: task.id, err });
     } finally {
       this.runningTasks.delete(task.id);
       await this.releaseTaskResources(task.id);
@@ -622,7 +623,7 @@ export class TaskEngine extends EventEmitter {
   }
 
   private async releaseTaskResources(taskId: string): Promise<void> {
-    for (const resource of this.resources.values()) {
+    for (const resource of Array.from(this.resources.values())) {
       if (resource.lockedBy === taskId) {
         resource.locked = false;
         resource.lockedBy = undefined;
@@ -637,7 +638,7 @@ export class TaskEngine extends EventEmitter {
       task.description.toLowerCase().includes(searchLower) ||
       task.type.toLowerCase().includes(searchLower) ||
       task.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
-      (task.assignedAgent && task.assignedAgent.toLowerCase().includes(searchLower))
+      Boolean(task.assignedAgent && task.assignedAgent.toLowerCase().includes(searchLower))
     );
   }
 
@@ -674,14 +675,16 @@ export class TaskEngine extends EventEmitter {
     if (!task) return;
 
     // Implement retry logic based on retryPolicy
-    if (task.retryPolicy && (task.metadata?.retryCount || 0) < task.retryPolicy.maxAttempts) {
-      task.metadata = { ...task.metadata, retryCount: (task.metadata?.retryCount || 0) + 1 };
+    const currentRetryCount = (task.metadata?.retryCount as number) || 0;
+    if (task.retryPolicy && currentRetryCount < task.retryPolicy.maxAttempts) {
+      const retryCount = currentRetryCount + 1;
+      task.metadata = { ...task.metadata, retryCount };
       task.status = 'pending';
       
       // Schedule retry with backoff
       setTimeout(() => {
         this.scheduleTask(task);
-      }, task.retryPolicy!.backoffMs * Math.pow(task.retryPolicy!.backoffMultiplier, task.metadata.retryCount - 1));
+      }, task.retryPolicy!.backoffMs * Math.pow(task.retryPolicy!.backoffMultiplier, retryCount - 1));
     }
   }
 

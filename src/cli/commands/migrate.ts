@@ -8,9 +8,10 @@ import { MigrationAnalyzer } from '../../migration/migration-analyzer';
 import { RollbackManager } from '../../migration/rollback-manager';
 import { MigrationStrategy } from '../../migration/types';
 import { logger } from '../../migration/logger';
-import * as path from 'path';
+import * as path from 'node:path';
 import chalk from "npm:chalk@^4.1.2";
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export function createMigrateCommand(): Command {
   const command = new Command('migrate');
   
@@ -35,8 +36,8 @@ export function createMigrateCommand(): Command {
           await runMigration(projectPath, options);
         }
         
-      } catch (error) {
-        logger.error('Migration command failed:', error);
+      } catch (err) {
+        logger.error('Migration command failed:', err);
         process.exit(1);
       }
     });

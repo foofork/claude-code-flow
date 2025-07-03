@@ -5,10 +5,11 @@
  */
 
 import { Command } from 'commander';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { configManager, ConfigError } from '../config/config-manager.js';
 import chalk from 'chalk';
+import { getErrorMessage } from '../utils/error-handler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -116,7 +117,7 @@ fi
     }
     
   } catch (err: any) {
-    console.log(`\n⚠️  Could not create local wrapper: ${err.message}`);
+    console.log(`\n⚠️  Could not create local wrapper: ${getErrorMessage(err)}`);
   }
 }
 
@@ -270,7 +271,7 @@ Mode: ${mode} | ${options.parallel ? 'Parallel' : 'Sequential'} | Memory: ${opti
         console.log(fullPrompt);
         console.log('─'.repeat(80));
       } else {
-        printError(`Failed to launch Claude Code: ${error.message}`);
+        printError(`Failed to launch Claude Code: ${getErrorMessage(error)}`);
       }
       // Cleanup temp file
       fs.unlink(promptFile).catch(() => {});
@@ -291,7 +292,7 @@ Mode: ${mode} | ${options.parallel ? 'Parallel' : 'Sequential'} | Memory: ${opti
       }
     });
   } catch (err) {
-    printError(`Failed to create prompt file: ${err.message}`);
+    printError(`Failed to create prompt file: ${getErrorMessage(err)}`);
     console.log('\n💡 Fallback - copy this prompt to use manually:');
     console.log('\n' + '─'.repeat(80));
     console.log(fullPrompt);
@@ -443,8 +444,8 @@ async function loadSparcPrompt(mode: string): Promise<string | null> {
       // File doesn't exist, return null to use fallback
       return null;
     }
-  } catch (error) {
-    // Any other error, return null to use fallback
+  } catch (err) {
+    // Any other err, return null to use fallback
     return null;
   }
   
@@ -572,7 +573,7 @@ async function createProgram() {
           
           console.log('\n💡 Run "npm run build" to compile the full orchestrator');
         } else {
-          printError(`Failed to start orchestrator: ${error.message}`);
+          printError(`Failed to start orchestrator: ${getErrorMessage(error)}`);
           console.log('\n💡 Try running with --verbose for more details');
         }
       }
@@ -876,7 +877,7 @@ async function createProgram() {
         await configManager.createDefaultConfig(options.file);
         printSuccess(`Configuration initialized: ${options.file}`);
       } catch (error) {
-        printError(`Failed to initialize configuration: ${error.message}`);
+        printError(`Failed to initialize configuration: ${getErrorMessage(error)}`);
       }
     });
 
@@ -890,7 +891,7 @@ async function createProgram() {
         const config = configManager.show();
         console.log(JSON.stringify(config, null, 2));
       } catch (error) {
-        printError(`Failed to show configuration: ${error.message}`);
+        printError(`Failed to show configuration: ${getErrorMessage(error)}`);
       }
     });
 
@@ -909,7 +910,7 @@ async function createProgram() {
         }
         console.log(JSON.stringify(value, null, 2));
       } catch (error) {
-        printError(`Failed to get configuration: ${error.message}`);
+        printError(`Failed to get configuration: ${getErrorMessage(error)}`);
       }
     });
 
@@ -954,7 +955,7 @@ async function createProgram() {
         await configManager.save();
         printSuccess(`Set ${path} = ${JSON.stringify(parsedValue)}`);
       } catch (error) {
-        printError(`Failed to set configuration: ${error.message}`);
+        printError(`Failed to set configuration: ${getErrorMessage(error)}`);
       }
     });
 
@@ -967,7 +968,7 @@ async function createProgram() {
         await configManager.load(options.file);
         printSuccess('Configuration is valid');
       } catch (error) {
-        printError(`Configuration validation failed: ${error.message}`);
+        printError(`Configuration validation failed: ${getErrorMessage(error)}`);
       }
     });
 
@@ -995,7 +996,7 @@ async function createProgram() {
         if (status.webUI) {
           console.log(`🌐 Web UI: Active`);
         }
-      } catch (error) {
+      } catch (err) {
         // Fallback to default status
         console.log('🟡 Status: Not Running (orchestrator not started)');
         console.log('🤖 Agents: 0 active');
@@ -1011,7 +1012,7 @@ async function createProgram() {
     const { createAdvancedMemoryCommand } = await import('./commands/advanced-memory-commands.js');
     const memoryCmd = createAdvancedMemoryCommand();
     program.addCommand(memoryCmd);
-  } catch (error) {
+  } catch (err) {
     // Fallback to simple memory commands if advanced ones fail to load
     const memoryCmd = program
       .command('memory')
@@ -1124,8 +1125,8 @@ async function createProgram() {
           printSuccess(`Exporting memory to: ${file}`);
           console.log(`💾 Exported ${memoryStore.size} entries`);
           console.log('✅ Memory exported successfully');
-        } catch (error: any) {
-          printError(`Failed to export memory: ${error.message}`);
+        } catch (err: any) {
+          printError(`Failed to export memory: ${getErrorMessage(err)}`);
         }
       });
 
@@ -1147,13 +1148,13 @@ async function createProgram() {
           printSuccess(`Importing memory from: ${file}`);
           console.log(`📥 Imported ${Object.keys(data).length} entries`);
           console.log('✅ Memory imported successfully');
-        } catch (error: any) {
-          if (error.code === 'ENOENT') {
+        } catch (err: any) {
+          if ((err as any).code === 'ENOENT') {
             printError(`File not found: ${file}`);
-          } else if (error instanceof SyntaxError) {
+          } else if (err instanceof SyntaxError) {
             printError(`Invalid JSON in file: ${file}`);
           } else {
-            printError(`Failed to import memory: ${error.message}`);
+            printError(`Failed to import memory: ${getErrorMessage(err)}`);
           }
         }
       });
@@ -1257,7 +1258,7 @@ async function createProgram() {
         console.log(chalk.default.gray(`• TTY: ${isTTY ? 'yes' : 'no'}`));
         console.log(chalk.default.gray(`• Program: ${process.env.TERM_PROGRAM || 'unknown'}`));
         console.log(chalk.default.gray(`• Platform: ${process.platform}`));
-      } catch (error) {
+      } catch (err) {
         printError('Failed to check UI support');
         console.log('Basic fallback check:');
         console.log(`TTY: ${process.stdin.isTTY ? 'yes' : 'no'}`);
@@ -1312,7 +1313,7 @@ async function createProgram() {
     const { createMCPCommand } = await import('./simple-mcp.js');
     const mcpCommand = createMCPCommand();
     program.addCommand(mcpCommand);
-  } catch (error) {
+  } catch (err) {
     // Fallback if MCP module not available
     const mcpCmd = program
       .command('mcp')
@@ -1355,7 +1356,7 @@ async function createProgram() {
         
         try {
           await configManager.load('claude-flow.config.json');
-        } catch (error) {
+        } catch (err) {
           // Use defaults if config file doesn't exist
           console.log('⚠️  Warning: Using default configuration');
         }
@@ -1388,7 +1389,7 @@ async function createProgram() {
         // Prevent CLI from exiting
         await new Promise(() => {}); // Keep running
       } catch (error) {
-        printError(`Failed to start MCP server: ${error.message}`);
+        printError(`Failed to start MCP server: ${getErrorMessage(error)}`);
       }
     });
 
@@ -1441,7 +1442,7 @@ async function createProgram() {
         const { startNodeREPL } = await import('./node-repl.js');
         await startNodeREPL(options);
       } catch (error) {
-        printError(`Failed to start REPL: ${error.message}`);
+        printError(`Failed to start REPL: ${getErrorMessage(error)}`);
       }
     });
 
@@ -1729,7 +1730,7 @@ See .claude/commands/swarm/ for detailed documentation on each strategy.
         // Create local wrapper script
         await createLocalWrapper(options.force);
       } catch (error) {
-        printError(`Failed to initialize project: ${error.message}`);
+        printError(`Failed to initialize project: ${getErrorMessage(error)}`);
       }
     });
 
@@ -2004,7 +2005,7 @@ Follow the red-green-refactor cycle strictly.`;
             console.log(fullPrompt);
             console.log('─'.repeat(60));
           } else {
-            printError(`Failed to launch Claude Code: ${error.message}`);
+            printError(`Failed to launch Claude Code: ${getErrorMessage(error)}`);
           }
           // Cleanup temp file
           fs.unlink(promptFile).catch(() => {});
@@ -2023,7 +2024,7 @@ Follow the red-green-refactor cycle strictly.`;
           }
         });
       } catch (err) {
-        printError(`Failed to create prompt file: ${err.message}`);
+        printError(`Failed to create prompt file: ${getErrorMessage(err)}`);
         console.log('\n💡 Fallback - copy this prompt to use manually:');
         console.log('\n' + '─'.repeat(60));
         console.log(fullPrompt);
@@ -2884,7 +2885,7 @@ Use ▶ to indicate actionable items`;
             // Simulate swarm execution
             simulateSwarmExecution(swarmConfig);
           } else {
-            printError(`Failed to launch Claude Code: ${error.message}`);
+            printError(`Failed to launch Claude Code: ${getErrorMessage(error)}`);
           }
           // Cleanup temp file
           fs.unlink(promptFile).catch(() => {});
@@ -2909,14 +2910,14 @@ Use ▶ to indicate actionable items`;
               await fs.writeFile(resultsPath, JSON.stringify(swarmConfig, null, 2));
               console.log(`📊 Results saved to: ${resultsPath}`);
             } catch (err) {
-              console.error(`Failed to save results: ${err.message}`);
+              console.error(`Failed to save results: ${getErrorMessage(err)}`);
             }
           } else if (code !== null) {
             console.log(`\n⚠️  Swarm exited with code ${code}`);
           }
         });
       } catch (err) {
-        printError(`Failed to create prompt file: ${err.message}`);
+        printError(`Failed to create prompt file: ${getErrorMessage(err)}`);
         // Fallback to simulation
         simulateSwarmExecution(swarmConfig);
       }
@@ -3074,8 +3075,8 @@ Use ▶ to indicate actionable items`;
             await fs.writeFile(path.join(sparcDir, file), content);
             console.log(`   ✅ Copied SPARC command file: ${file}`);
           } catch (copyError) {
-            console.log(`   ⚠️  Could not copy ${file}: ${copyError.message}`);
-          }
+            console.log(`   ⚠️  Could not copy ${file}: ${(copyError as any).message}`);
+  }
         }
       }
       
@@ -3434,7 +3435,7 @@ async function main() {
 
     await program.parseAsync(process.argv);
   } catch (error) {
-    printError(`Failed to execute command: ${error.message}`);
+    printError(`Failed to execute command: ${getErrorMessage(error)}`);
     process.exit(1);
   }
 }

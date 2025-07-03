@@ -1,5 +1,6 @@
 import { CLI, success, error, warning, info, VERSION } from "../cli-core.js";
 import type { Command, CommandContext } from "../cli-core.js";
+import { getErrorMessage } from '../../utils/error-handler.js';
 import colors from "chalk";
 const { bold, blue, yellow } = colors;
 import { Orchestrator } from "../../core/orchestrator-fixed.js";
@@ -133,7 +134,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`  ✓ Created ${dir}/ directory`);
           } catch (err) {
             if ((err as any).code !== 'EEXIST') {
-              throw err;
+              throw new Error(getErrorMessage(err));
             }
           }
         }
@@ -164,7 +165,7 @@ export function setupCommands(cli: CLI): void {
         console.log("\nNote: Persistence database initialized at memory/claude-flow-data.json");
         
       } catch (err) {
-        error(`Failed to initialize files: ${(err as Error).message}`);
+        error(`Failed to initialize files: ${getErrorMessage(err)}`);
       }
     },
   });
@@ -227,7 +228,7 @@ export function setupCommands(cli: CLI): void {
           }
         }
       } catch (err) {
-        error(`Failed to start system: ${(err as Error).message}`);
+        error(`Failed to start system: ${getErrorMessage(err)}`);
         process.exit(1);
       }
     },
@@ -268,7 +269,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`🎯 Type: ${type}`);
             console.log(`📄 Description: ${description}`);
           } catch (err) {
-            error(`Failed to create task: ${(err as Error).message}`);
+            error(`Failed to create task: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -290,7 +291,7 @@ export function setupCommands(cli: CLI): void {
               }
             }
           } catch (err) {
-            error(`Failed to list tasks: ${(err as Error).message}`);
+            error(`Failed to list tasks: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -331,7 +332,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`📝 Task: ${task.description}`);
             console.log(`🤖 Agent: ${agent.name} (${agent.type})`);
           } catch (err) {
-            error(`Failed to assign task: ${(err as Error).message}`);
+            error(`Failed to assign task: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -361,7 +362,7 @@ export function setupCommands(cli: CLI): void {
               info("To execute this workflow, ensure Claude-Flow is running");
             }
           } catch (err) {
-            error(`Failed to load workflow: ${(err as Error).message}`);
+            error(`Failed to load workflow: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -444,7 +445,7 @@ export function setupCommands(cli: CLI): void {
           }
         }
       } catch (err) {
-        error(`Enhanced agent management unavailable: ${(err as Error).message}`);
+        error(`Enhanced agent management unavailable: ${getErrorMessage(err)}`);
         
         // Fallback to basic implementation
         switch (subcommand) {
@@ -474,7 +475,7 @@ export function setupCommands(cli: CLI): void {
               console.log(`📛 Name: ${name}`);
               console.log(`⚡ Status: Active`);
             } catch (err) {
-              error(`Failed to spawn agent: ${(err as Error).message}`);
+              error(`Failed to spawn agent: ${getErrorMessage(err)}`);
             }
             break;
           }
@@ -493,7 +494,7 @@ export function setupCommands(cli: CLI): void {
                 }
               }
             } catch (err) {
-              error(`Failed to list agents: ${(err as Error).message}`);
+              error(`Failed to list agents: ${getErrorMessage(err)}`);
             }
             break;
           }
@@ -560,7 +561,7 @@ export function setupCommands(cli: CLI): void {
         }
         
       } catch (err) {
-        error(`Failed to get status: ${(err as Error).message}`);
+        error(`Failed to get status: ${getErrorMessage(err)}`);
       }
     };
     
@@ -611,7 +612,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`  Completed Tasks: ${stats.completedTasks}`);
           }
         } catch (err) {
-          error(`Failed to get status: ${(err as Error).message}`);
+          error(`Failed to get status: ${getErrorMessage(err)}`);
         }
       }
     });
@@ -644,7 +645,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`🔧 Available tools: Research, Code, Terminal, Memory`);
             console.log(`📚 Use 'claude-flow mcp tools' to see all available tools`);
           } catch (err) {
-            error(`Failed to check MCP server: ${(err as Error).message}`);
+            error(`Failed to check MCP server: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -660,7 +661,7 @@ export function setupCommands(cli: CLI): void {
               warning("MCP server runs as part of the orchestrator. Use 'claude-flow stop' to stop the entire system");
             }
           } catch (err) {
-            error(`Failed to check MCP server: ${(err as Error).message}`);
+            error(`Failed to check MCP server: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -682,7 +683,7 @@ export function setupCommands(cli: CLI): void {
               console.log(`📊 Metrics: Collecting`);
             }
           } catch (err) {
-            error(`Failed to get MCP status: ${(err as Error).message}`);
+            error(`Failed to get MCP status: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -710,7 +711,7 @@ export function setupCommands(cli: CLI): void {
             console.log("    • memory_query - Query stored information");
             console.log("    • memory_index - Index and search content");
           } catch (err) {
-            error(`Failed to list tools: ${(err as Error).message}`);
+            error(`Failed to list tools: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -723,7 +724,7 @@ export function setupCommands(cli: CLI): void {
             success("MCP Configuration:");
             console.log(JSON.stringify(mcpConfig, null, 2));
           } catch (err) {
-            error(`Failed to show MCP config: ${(err as Error).message}`);
+            error(`Failed to show MCP config: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -732,7 +733,7 @@ export function setupCommands(cli: CLI): void {
           try {
             warning("MCP server runs as part of the orchestrator. Use 'claude-flow stop' then 'claude-flow start' to restart the entire system");
           } catch (err) {
-            error(`Failed to restart MCP server: ${(err as Error).message}`);
+            error(`Failed to restart MCP server: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -750,7 +751,7 @@ export function setupCommands(cli: CLI): void {
             console.log("2024-01-10 10:01:05 [INFO] Tool called: web_search");
             console.log("2024-01-10 10:01:10 [INFO] Tool response sent successfully");
           } catch (err) {
-            error(`Failed to get logs: ${(err as Error).message}`);
+            error(`Failed to get logs: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -791,7 +792,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`📦 Namespace: ${namespace}`);
             console.log(`💾 Size: ${new TextEncoder().encode(value).length} bytes`);
           } catch (err) {
-            error(`Failed to store: ${(err as Error).message}`);
+            error(`Failed to store: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -828,7 +829,7 @@ export function setupCommands(cli: CLI): void {
               console.log(`\n... and ${results.length - limit} more results`);
             }
           } catch (err) {
-            error(`Failed to query: ${(err as Error).message}`);
+            error(`Failed to query: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -849,7 +850,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`📊 Entries: ${stats.totalEntries}`);
             console.log(`💾 Size: ${(stats.sizeBytes / 1024).toFixed(2)} KB`);
           } catch (err) {
-            error(`Failed to export: ${(err as Error).message}`);
+            error(`Failed to export: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -870,7 +871,7 @@ export function setupCommands(cli: CLI): void {
             console.log(`📊 Entries: ${stats.totalEntries}`);
             console.log(`🗂️  Namespaces: ${stats.namespaces}`);
           } catch (err) {
-            error(`Failed to import: ${(err as Error).message}`);
+            error(`Failed to import: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -891,7 +892,7 @@ export function setupCommands(cli: CLI): void {
               }
             }
           } catch (err) {
-            error(`Failed to get stats: ${(err as Error).message}`);
+            error(`Failed to get stats: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -903,7 +904,7 @@ export function setupCommands(cli: CLI): void {
             success("Cleanup completed");
             console.log(`🗑️  Removed: ${removed} entries older than ${days} days`);
           } catch (err) {
-            error(`Failed to cleanup: ${(err as Error).message}`);
+            error(`Failed to cleanup: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1171,7 +1172,7 @@ Now, please proceed with the task: ${task}`;
               stdio: "inherit",
             });
             
-            const status = await new Promise((resolve) => {
+            const status = await new Promise<{ success: boolean; code: number | null }>((resolve) => {
               child.on("close", (code) => {
                 resolve({ success: code === 0, code });
               });
@@ -1184,7 +1185,7 @@ Now, please proceed with the task: ${task}`;
             }
             
           } catch (err) {
-            error(`Failed to spawn Claude: ${(err as Error).message}`);
+            error(`Failed to spawn Claude: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1257,7 +1258,7 @@ Now, please proceed with the task: ${task}`;
                 }));
               } else {
                 // Wait for completion if sequential
-                const status = await new Promise((resolve) => {
+                const status = await new Promise<{ success: boolean; code: number | null }>((resolve) => {
                   child.on("close", (code) => {
                     resolve({ success: code === 0, code });
                   });
@@ -1271,7 +1272,7 @@ Now, please proceed with the task: ${task}`;
             if (workflow.parallel && promises.length > 0) {
               success("All Claude instances spawned in parallel mode");
               const results = await Promise.all(promises);
-              const failed = results.filter(s => !s.success).length;
+              const failed = results.filter((s: any) => !s.success).length;
               if (failed > 0) {
                 warning(`${failed} tasks failed`);
               } else {
@@ -1280,7 +1281,7 @@ Now, please proceed with the task: ${task}`;
             }
             
           } catch (err) {
-            error(`Failed to process workflow: ${(err as Error).message}`);
+            error(`Failed to process workflow: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1426,7 +1427,7 @@ Now, please proceed with the task: ${task}`;
             
             await new Promise(resolve => setTimeout(resolve, interval));
           } catch (err) {
-            error(`Monitor error: ${(err as Error).message}`);
+            error(`Monitor error: ${getErrorMessage(err)}`);
             await new Promise(resolve => setTimeout(resolve, interval));
           }
         }
@@ -1434,7 +1435,7 @@ Now, please proceed with the task: ${task}`;
         process.stdout.write('\x1b[?25h');
         
       } catch (err) {
-        error(`Failed to start enhanced monitor: ${(err as Error).message}`);
+        error(`Failed to start enhanced monitor: ${getErrorMessage(err)}`);
       }
     };
     
@@ -1502,7 +1503,7 @@ Now, please proceed with the task: ${task}`;
             await new Promise(resolve => setTimeout(resolve, interval));
           }
         } catch (err) {
-          error(`Failed to start monitor: ${(err as Error).message}`);
+          error(`Failed to start monitor: ${getErrorMessage(err)}`);
         }
       }
     });
@@ -1679,7 +1680,7 @@ Now, please proceed with the task: ${task}`;
         // Call the original SPARC action with enhanced features
         await sparcAction(ctx);
       } catch (err) {
-        error(`Enhanced SPARC failed: ${(err as Error).message}`);
+        error(`Enhanced SPARC failed: ${getErrorMessage(err)}`);
       }
     },
   });
@@ -1879,7 +1880,7 @@ Now, please proceed with the task: ${task}`;
           });
         }
       } catch (err) {
-        error(`Failed to start enhanced system: ${(err as Error).message}`);
+        error(`Failed to start enhanced system: ${getErrorMessage(err)}`);
         process.exit(1);
       }
     };

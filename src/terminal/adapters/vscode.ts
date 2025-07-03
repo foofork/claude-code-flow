@@ -2,12 +2,13 @@
  * VSCode terminal adapter implementation
  */
 
-import { platform } from 'os';
+import { platform } from 'node:os';
 import { ITerminalAdapter, Terminal } from './base.js';
 import { ILogger } from '../../core/logger.js';
 import { TerminalError } from '../../utils/errors.js';
 import { generateId, delay, timeout, createDeferred } from '../../utils/helpers.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * VSCode API interface (injected via extension)
  */
@@ -84,8 +85,8 @@ class VSCodeTerminalWrapper implements Terminal {
       await this.waitForReady();
 
       this.logger.debug('VSCode terminal initialized', { id: this.id, pid: this.pid });
-    } catch (error) {
-      throw new TerminalError('Failed to create VSCode terminal', { error });
+    } catch (err) {
+      throw new TerminalError('Failed to create VSCode terminal', { err });
     }
   }
 
@@ -111,8 +112,8 @@ class VSCodeTerminalWrapper implements Terminal {
       );
 
       return output;
-    } catch (error) {
-      throw new TerminalError('Failed to execute command', { command, error });
+    } catch (err) {
+      throw new TerminalError('Failed to execute command', { command, err });
     }
   }
 
@@ -149,8 +150,8 @@ class VSCodeTerminalWrapper implements Terminal {
         // Dispose terminal
         this.vscodeTerminal.dispose();
         this.isDisposed = true;
-      } catch (error) {
-        this.logger.warn('Error killing VSCode terminal', { id: this.id, error });
+      } catch (err) {
+        this.logger.warn('Error killing VSCode terminal', { id: this.id, err });
       }
     }
   }

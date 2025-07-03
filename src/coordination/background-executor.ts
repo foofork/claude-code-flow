@@ -5,6 +5,7 @@ import { generateId } from '../utils/helpers.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface BackgroundTask {
   id: string;
   type: 'claude-spawn' | 'script' | 'command';
@@ -300,12 +301,12 @@ export class BackgroundExecutor extends EventEmitter {
         await this.saveTaskState(task);
       }
 
-    } catch (error) {
+    } catch (err) {
       task.status = 'failed';
-      task.error = String(error);
+      task.error = getErrorMessage(err);
       task.endTime = new Date();
       
-      this.logger.error(`Failed to execute task ${task.id}:`, error);
+      this.logger.error(`Failed to execute task ${task.id}:`, err);
       this.emit('task:failed', task);
 
       if (this.config.enablePersistence) {
@@ -360,8 +361,8 @@ export class BackgroundExecutor extends EventEmitter {
     try {
       const taskFile = path.join(this.config.logPath, task.id, 'task.json');
       await fs.writeFile(taskFile, JSON.stringify(task, null, 2));
-    } catch (error) {
-      this.logger.error(`Failed to save task state for ${task.id}:`, error);
+    } catch (err) {
+      this.logger.error(`Failed to save task state for ${task.id}:`, err);
     }
   }
 
@@ -381,8 +382,8 @@ export class BackgroundExecutor extends EventEmitter {
 
       // Save final task state
       await this.saveTaskState(task);
-    } catch (error) {
-      this.logger.error(`Failed to save task output for ${task.id}:`, error);
+    } catch (err) {
+      this.logger.error(`Failed to save task output for ${task.id}:`, err);
     }
   }
 

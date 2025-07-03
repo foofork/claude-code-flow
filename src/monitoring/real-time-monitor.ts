@@ -16,6 +16,7 @@ import {
   AgentId
 } from '../swarm/types.js';
 import { DistributedMemorySystem } from '../memory/distributed-memory.js';
+import { getErrorMessage } from '../utils/error-handler.js';
 
 export interface MonitorConfig {
   updateInterval: number;
@@ -196,39 +197,45 @@ export class RealTimeMonitor extends EventEmitter {
 
   private setupEventHandlers(): void {
     // Agent events
-    this.eventBus.on('agent:metrics-update', (data) => {
-      this.updateAgentMetrics(data.agentId, data.metrics);
+    this.eventBus.on('agent:metrics-update', (data: unknown) => {
+      const typedData = data as { agentId: string; metrics: AgentMetrics };
+      this.updateAgentMetrics(typedData.agentId, typedData.metrics);
     });
 
-    this.eventBus.on('agent:status-changed', (data) => {
+    this.eventBus.on('agent:status-changed', (data: unknown) => {
+      const typedData = data as { agentId: string; from: string; to: string };
       this.recordMetric('agent.status.change', 1, { 
-        agentId: data.agentId, 
-        from: data.from, 
-        to: data.to 
+        agentId: typedData.agentId, 
+        from: typedData.from, 
+        to: typedData.to 
       });
     });
 
     // Task events
-    this.eventBus.on('task:started', (data) => {
-      this.recordMetric('task.started', 1, { taskId: data.taskId, agentId: data.agentId });
+    this.eventBus.on('task:started', (data: unknown) => {
+      const typedData = data as { taskId: string; agentId: string };
+      this.recordMetric('task.started', 1, { taskId: typedData.taskId, agentId: typedData.agentId });
     });
 
-    this.eventBus.on('task:completed', (data) => {
-      this.recordMetric('task.completed', 1, { taskId: data.taskId });
-      this.recordMetric('task.duration', data.duration, { taskId: data.taskId });
+    this.eventBus.on('task:completed', (data: unknown) => {
+      const typedData = data as { taskId: string; duration: number };
+      this.recordMetric('task.completed', 1, { taskId: typedData.taskId });
+      this.recordMetric('task.duration', typedData.duration, { taskId: typedData.taskId });
     });
 
-    this.eventBus.on('task:failed', (data) => {
-      this.recordMetric('task.failed', 1, { taskId: data.taskId, error: data.error });
+    this.eventBus.on('task:failed', (data: unknown) => {
+      const typedData = data as { taskId: string; error: string };
+      this.recordMetric('task.failed', 1, { taskId: typedData.taskId, error: typedData.error });
     });
 
     // System events
-    this.eventBus.on('system:resource-update', (data) => {
-      this.updateSystemMetrics(data);
+    this.eventBus.on('system:resource-update', (data: unknown) => {
+      this.updateSystemMetrics(data as SystemMetrics);
     });
 
-    this.eventBus.on('swarm:metrics-update', (data) => {
-      this.updateSwarmMetrics(data.metrics);
+    this.eventBus.on('swarm:metrics-update', (data: unknown) => {
+      const typedData = data as { metrics: SwarmMetrics };
+      this.updateSwarmMetrics(typedData.metrics);
     });
 
     // Error events
@@ -307,8 +314,8 @@ export class RealTimeMonitor extends EventEmitter {
       // Update swarm-level metrics
       await this.updateSwarmLevelMetrics();
 
-    } catch (error) {
-      this.logger.error('Failed to collect system metrics', error);
+    } catch (err) {
+      this.logger.error('Failed to collect system metrics', err);
     }
   }
 
@@ -519,11 +526,11 @@ export class RealTimeMonitor extends EventEmitter {
           default:
             this.logger.warn('Unknown alert action type', { type: action.type });
         }
-      } catch (error) {
+      } catch (err) {
         this.logger.error('Failed to execute alert action', { 
           alertId: alert.id, 
           actionType: action.type, 
-          error 
+          err 
         });
       }
     }
@@ -582,11 +589,11 @@ export class RealTimeMonitor extends EventEmitter {
       });
 
     } catch (error) {
-      this.logger.error('Health check failed', { check: check.name, error });
+      this.logger.error('Health check failed', { check: check.name, error: getErrorMessage(error) });
       this.recordMetric(`healthcheck.${check.name}`, 0, {
         type: check.type,
         target: check.target,
-        error: error.message
+        error: getErrorMessage(error)
       });
     }
   }
@@ -872,8 +879,8 @@ export class RealTimeMonitor extends EventEmitter {
         partition: 'metrics'
       });
 
-    } catch (error) {
-      this.logger.error('Failed to export metrics', error);
+    } catch (err) {
+      this.logger.error('Failed to export metrics', err);
     }
   }
 

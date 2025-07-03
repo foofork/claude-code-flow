@@ -7,6 +7,7 @@ import chalk from "chalk";
 import fs from "fs-extra";
 import path from "path";
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export const VERSION = "1.0.43";
 
 interface CommandContext {
@@ -114,10 +115,10 @@ class CLI {
       } else {
         console.log(chalk.yellow(`Command '${commandName}' has no action defined`));
       }
-    } catch (error) {
-      console.error(chalk.red(`Error executing command '${commandName}':`), (error as Error).message);
+    } catch (err) {
+      console.error(chalk.red(`Error executing command '${commandName}':`), getErrorMessage(err));
       if (flags.verbose) {
-        console.error(error);
+        console.error(err);
       }
       process.exit(1);
     }

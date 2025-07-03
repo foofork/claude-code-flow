@@ -6,6 +6,7 @@ import { MCPProtocolVersion, MCPCapabilities, MCPInitializeParams } from '../uti
 import { ILogger } from '../core/logger.js';
 import { MCPError } from '../utils/errors.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ProtocolVersionInfo {
   version: MCPProtocolVersion;
   name: string;
@@ -209,12 +210,12 @@ export class MCPProtocolManager {
       });
 
       return result;
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Protocol negotiation failed', {
         clientVersion: this.versionToString(clientParams.protocolVersion),
-        error,
+        err,
       });
-      throw error;
+      throw err;
     }
   }
 

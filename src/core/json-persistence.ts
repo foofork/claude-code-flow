@@ -5,6 +5,7 @@
 import { join } from "path";
 import { mkdir, access, readFile, writeFile } from "fs/promises";
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface PersistedAgent {
   id: string;
   type: string;
@@ -60,9 +61,9 @@ export class JsonPersistenceManager {
       await access(this.dataPath);
       const content = await readFile(this.dataPath, "utf-8");
       this.data = JSON.parse(content);
-    } catch (error) {
+    } catch (err) {
       // File doesn't exist or can't be read, keep default empty data
-      console.error("Failed to load persistence data:", error);
+      console.error("Failed to load persistence data:", getErrorMessage(err));
     }
   }
 

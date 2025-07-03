@@ -5,6 +5,7 @@
 import { ILogger } from '../core/logger.js';
 import { IEventBus } from '../core/event-bus.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface CircuitBreakerConfig {
   failureThreshold: number; // Number of failures before opening
   successThreshold: number; // Number of successes before closing
@@ -72,11 +73,11 @@ export class CircuitBreaker {
       this.onSuccess();
       
       return result;
-    } catch (error) {
+    } catch (err) {
       // Record failure
       this.onFailure();
       
-      throw error;
+      throw new Error(getErrorMessage(err));
     }
   }
 

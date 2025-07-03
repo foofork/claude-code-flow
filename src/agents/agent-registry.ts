@@ -7,6 +7,7 @@ import { DistributedMemorySystem } from '../memory/distributed-memory.js';
 import { AgentState, AgentId, AgentType, AgentStatus } from '../swarm/types.js';
 import { EventEmitter } from 'node:events';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface AgentRegistryEntry {
   agent: AgentState;
   createdAt: Date;
@@ -171,8 +172,9 @@ export class AgentRegistry extends EventEmitter {
     const entry = await this.memory.retrieve(key);
     
     if (entry) {
-      this.cache.set(agentId, entry);
-      return entry;
+      const agentEntry = entry.value as AgentRegistryEntry;
+      this.cache.set(agentId, agentEntry);
+      return agentEntry;
     }
 
     return null;
@@ -196,7 +198,7 @@ export class AgentRegistry extends EventEmitter {
     }
 
     if (query.healthThreshold !== undefined) {
-      agents = agents.filter(agent => agent.health >= query.healthThreshold);
+      agents = agents.filter(agent => agent.health >= query.healthThreshold!);
     }
 
     if (query.namePattern) {
@@ -391,15 +393,17 @@ export class AgentRegistry extends EventEmitter {
   async getCoordinationData(agentId: string): Promise<any> {
     const key = `coordination:${agentId}`;
     const result = await this.memory.retrieve(key);
-    return result?.data || null;
+    return result?.value || null;
   }
 
   // === PRIVATE METHODS ===
 
   private async loadFromMemory(): Promise<void> {
     try {
-      const entries = await this.memory.queryByType('agent-registry', {
-        partition: this.namespace
+      // Query all entries and filter by type
+      const entries = await this.memory.query({
+        namespace: this.namespace,
+        tags: ['agent-registry']
       });
 
       this.cache.clear();
@@ -410,8 +414,8 @@ export class AgentRegistry extends EventEmitter {
       }
 
       this.lastCacheUpdate = Date.now();
-    } catch (error) {
-      console.warn('Failed to load agent registry from memory:', error);
+    } catch (err) {
+      console.warn('Failed to load agent registry from memory:', err);
     }
   }
 

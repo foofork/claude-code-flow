@@ -8,6 +8,7 @@ import { ILogger } from '../core/logger.js';
 import { CoordinationError } from '../utils/errors.js';
 import { generateId, timeout as timeoutHelper } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 interface MessageQueue {
   messages: Message[];
   handlers: Map<string, (message: Message) => void>;
@@ -216,11 +217,11 @@ export class MessageRouter {
       handlers.map(handler => {
         try {
           handler(message);
-        } catch (error) {
-          this.logger.error('Message handler error', { 
+        } catch (err) {
+          this.logger.error('Message handler err', { 
             agentId,
             messageId: message.id,
-            error,
+            err,
           });
         }
       }),

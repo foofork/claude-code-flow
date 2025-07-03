@@ -6,6 +6,7 @@ import { MCPLoadBalancerConfig, MCPRequest, MCPResponse, MCPSession } from '../u
 import { ILogger } from '../core/logger.js';
 import { MCPError } from '../utils/errors.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface RequestMetrics {
   requestId: string;
   sessionId: string;
@@ -474,8 +475,8 @@ export class RequestQueue {
       try {
         const result = await processor(item.session, item.request);
         item.resolve(result);
-      } catch (error) {
-        item.reject(error instanceof Error ? error : new Error(String(error)));
+      } catch (err) {
+        item.reject(err instanceof Error ? err : new Error(getErrorMessage(err)));
       }
     }
 

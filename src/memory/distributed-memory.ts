@@ -17,6 +17,7 @@ import {
 } from '../swarm/types.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface DistributedMemoryConfig {
   namespace: string;
   distributed: boolean;
@@ -390,9 +391,9 @@ export class DistributedMemorySystem extends EventEmitter {
       this.recordMetric('store', Date.now() - startTime);
       return entryId;
 
-    } catch (error) {
-      this.recordMetric('store-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('store-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -459,9 +460,9 @@ export class DistributedMemorySystem extends EventEmitter {
       this.recordMetric('retrieve-miss', Date.now() - startTime);
       return null;
 
-    } catch (error) {
-      this.recordMetric('retrieve-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('retrieve-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -520,9 +521,9 @@ export class DistributedMemorySystem extends EventEmitter {
       this.recordMetric('update', Date.now() - startTime);
       return true;
 
-    } catch (error) {
-      this.recordMetric('update-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('update-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -568,9 +569,9 @@ export class DistributedMemorySystem extends EventEmitter {
       this.recordMetric('delete', Date.now() - startTime);
       return true;
 
-    } catch (error) {
-      this.recordMetric('delete-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('delete-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -616,9 +617,9 @@ export class DistributedMemorySystem extends EventEmitter {
       this.recordMetric('query', Date.now() - startTime);
       return results;
 
-    } catch (error) {
-      this.recordMetric('query-error', Date.now() - startTime);
-      throw error;
+    } catch (err) {
+      this.recordMetric('query-err', Date.now() - startTime);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -649,8 +650,8 @@ export class DistributedMemorySystem extends EventEmitter {
       // Update statistics
       this.updateStatistics();
 
-    } catch (error) {
-      this.logger.error('Sync error', error);
+    } catch (err) {
+      this.logger.error('Sync err', err);
     }
   }
 
@@ -664,10 +665,10 @@ export class DistributedMemorySystem extends EventEmitter {
         operation.status = 'completed';
         
         this.statistics.syncOperations.completed++;
-      } catch (error) {
+      } catch (err) {
         operation.status = 'failed';
         this.statistics.syncOperations.failed++;
-        this.logger.error('Sync operation failed', { operation, error });
+        this.logger.error('Sync operation failed', { operation, err });
       }
     }
 

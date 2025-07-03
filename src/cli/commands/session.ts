@@ -9,6 +9,7 @@ import { Confirm, Input } from '@cliffy/prompt';
 import { formatDuration, formatStatusIndicator } from '../formatter.js';
 import { generateId } from '../../utils/helpers.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export const sessionCommand = new Command()
   .description('Manage Claude-Flow sessions')
   .action(() => {
@@ -109,9 +110,9 @@ const SESSION_DIR = '.claude-flow/sessions';
 async function ensureSessionDir(): Promise<void> {
   try {
     await Deno.mkdir(SESSION_DIR, { recursive: true });
-  } catch (error) {
-    if (!(error instanceof Deno.errors.AlreadyExists)) {
-      throw error;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.AlreadyExists)) {
+      throw new Error(getErrorMessage(err));
     }
   }
 }
@@ -156,8 +157,8 @@ async function listSessions(options: any): Promise<void> {
     }
 
     table.render();
-  } catch (error) {
-    console.error(colors.red('Failed to list sessions:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to list sessions:'), getErrorMessage(err));
   }
 }
 
@@ -207,8 +208,8 @@ async function saveSession(name: string | undefined, options: any): Promise<void
     
     console.log(`${colors.white('Agents:')} ${session.state.agents.length}`);
     console.log(`${colors.white('Tasks:')} ${session.state.tasks.length}`);
-  } catch (error) {
-    console.error(colors.red('Failed to save session:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to save session:'), getErrorMessage(err));
   }
 }
 
@@ -283,8 +284,8 @@ async function restoreSession(sessionId: string, options: any): Promise<void> {
 
     console.log(colors.green('✓ Session restored successfully'));
     console.log(colors.yellow('Note: This is a mock implementation. In production, this would connect to the orchestrator.'));
-  } catch (error) {
-    console.error(colors.red('Failed to restore session:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to restore session:'), getErrorMessage(err));
   }
 }
 
@@ -317,8 +318,8 @@ async function deleteSession(sessionId: string, options: any): Promise<void> {
     await Deno.remove(filePath);
 
     console.log(colors.green('✓ Session deleted successfully'));
-  } catch (error) {
-    console.error(colors.red('Failed to delete session:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to delete session:'), getErrorMessage(err));
   }
 }
 
@@ -358,8 +359,8 @@ async function exportSession(sessionId: string, outputFile: string, options: any
     console.log(`${colors.white('File:')} ${outputFile}`);
     console.log(`${colors.white('Format:')} ${options.format}`);
     console.log(`${colors.white('Size:')} ${new Blob([content]).size} bytes`);
-  } catch (error) {
-    console.error(colors.red('Failed to export session:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to export session:'), getErrorMessage(err));
   }
 }
 
@@ -407,8 +408,8 @@ async function importSession(inputFile: string, options: any): Promise<void> {
     console.log(`${colors.white('ID:')} ${sessionData.id}`);
     console.log(`${colors.white('Name:')} ${sessionData.name}`);
     console.log(`${colors.white('Action:')} ${options.overwrite ? 'Overwritten' : 'Created'}`);
-  } catch (error) {
-    console.error(colors.red('Failed to import session:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to import session:'), getErrorMessage(err));
   }
 }
 
@@ -463,8 +464,8 @@ async function showSessionInfo(sessionId: string): Promise<void> {
     } catch {
       console.log(colors.red('Warning: Session file not found'));
     }
-  } catch (error) {
-    console.error(colors.red('Failed to show session info:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to show session info:'), getErrorMessage(err));
   }
 }
 
@@ -518,14 +519,14 @@ async function cleanSessions(options: any): Promise<void> {
         const filePath = `${SESSION_DIR}/${session.id}.json`;
         await Deno.remove(filePath);
         deleted++;
-      } catch (error) {
-        console.error(colors.red(`Failed to delete ${session.name}:`), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red(`Failed to delete ${session.name}:`), getErrorMessage(err));
       }
     }
 
     console.log(colors.green(`✓ Cleaned ${deleted} sessions`));
-  } catch (error) {
-    console.error(colors.red('Failed to clean sessions:'), (error as Error).message);
+  } catch (err) {
+    console.error(colors.red('Failed to clean sessions:'), getErrorMessage(err));
   }
 }
 
@@ -544,14 +545,14 @@ async function loadAllSessions(): Promise<SessionData[]> {
           session.updatedAt = new Date(session.updatedAt);
           
           sessions.push(session);
-        } catch (error) {
-          console.warn(colors.yellow(`Warning: Failed to load session file ${entry.name}:`), (error as Error).message);
+        } catch (err) {
+          console.warn(colors.yellow(`Warning: Failed to load session file ${entry.name}:`), getErrorMessage(err));
         }
       }
     }
-  } catch (error) {
-    if (!(error instanceof Deno.errors.NotFound)) {
-      throw error;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound)) {
+      throw new Error(getErrorMessage(err));
     }
   }
   

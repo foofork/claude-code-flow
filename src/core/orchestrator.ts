@@ -22,8 +22,9 @@ import { IMCPServer } from '../mcp/server.js';
 import { SystemError, InitializationError, ShutdownError } from '../utils/errors.js';
 import { delay, retry, circuitBreaker, CircuitBreaker } from '../utils/helpers.js';
 import { mkdir, writeFile, readFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { join, dirname } from 'node:path';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ISessionManager {
   createSession(profile: AgentProfile): Promise<AgentSession>;
   getSession(sessionId: string): AgentSession | undefined;
@@ -127,9 +128,9 @@ class SessionManager implements ISessionManager {
       );
       
       return session;
-    } catch (error) {
-      this.logger.error('Failed to create session', { agentId: profile.id, error });
-      throw new SystemError(`Failed to create session for agent ${profile.id}`, { error });
+    } catch (err) {
+      this.logger.error('Failed to create session', { agentId: profile.id, err });
+      throw new SystemError(`Failed to create session for agent ${profile.id}`, { err });
     }
   }
 
@@ -183,9 +184,9 @@ class SessionManager implements ISessionManager {
       this.persistSessions().catch(error => 
         this.logger.error('Failed to persist sessions', error)
       );
-    } catch (error) {
-      this.logger.error('Error during session termination', { sessionId, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Error during session termination', { sessionId, err });
+      throw err;
     }
   }
 
@@ -233,8 +234,8 @@ class SessionManager implements ISessionManager {
         
         this.logger.debug('Sessions persisted', { count: data.sessions.length });
       });
-    } catch (error) {
-      this.logger.error('Failed to persist sessions', error);
+    } catch (err) {
+      this.logger.error('Failed to persist sessions', err);
     }
   }
 
@@ -265,16 +266,16 @@ class SessionManager implements ISessionManager {
           });
           
           this.logger.info('Session restored', { sessionId: session.id });
-        } catch (error) {
+        } catch (err) {
           this.logger.error('Failed to restore session', { 
             sessionId: sessionData.id, 
-            error 
+            err 
           });
         }
       }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        this.logger.error('Failed to restore sessions', error);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.logger.error('Failed to restore sessions', err);
       }
     }
   }
@@ -287,9 +288,9 @@ export class Orchestrator implements IOrchestrator {
   private initialized = false;
   private shutdownInProgress = false;
   private sessionManager: ISessionManager;
-  private healthCheckInterval?: number;
-  private maintenanceInterval?: number;
-  private metricsInterval?: number;
+  private healthCheckInterval?: NodeJS.Timeout;
+  private maintenanceInterval?: NodeJS.Timeout;
+  private metricsInterval?: NodeJS.Timeout;
   private agents = new Map<string, AgentProfile>();
   private taskQueue: Task[] = [];
   private taskHistory = new Map<string, Task>();
@@ -370,13 +371,13 @@ export class Orchestrator implements IOrchestrator {
       const initDuration = Date.now() - startTime;
       this.eventBus.emit(SystemEvents.SYSTEM_READY, { timestamp: new Date() });
       this.logger.info('Orchestrator initialized successfully', { duration: initDuration });
-    } catch (error) {
-      this.logger.error('Failed to initialize orchestrator', error);
+    } catch (err) {
+      this.logger.error('Failed to initialize orchestrator', err);
       
       // Attempt cleanup on initialization failure
       await this.emergencyShutdown();
       
-      throw new InitializationError('Orchestrator', { error });
+      throw new InitializationError('Orchestrator', { err });
     }
   }
 
@@ -411,13 +412,13 @@ export class Orchestrator implements IOrchestrator {
       const shutdownDuration = Date.now() - shutdownStart;
       this.eventBus.emit(SystemEvents.SYSTEM_SHUTDOWN, { reason: 'Graceful shutdown' });
       this.logger.info('Orchestrator shutdown complete', { duration: shutdownDuration });
-    } catch (error) {
-      this.logger.error('Error during shutdown', error);
+    } catch (err) {
+      this.logger.error('Error during shutdown', err);
       
       // Force shutdown if graceful shutdown fails
       await this.emergencyShutdown();
       
-      throw new ShutdownError('Failed to shutdown gracefully', { error });
+      throw new ShutdownError('Failed to shutdown gracefully', { err });
     } finally {
       this.initialized = false;
       this.shutdownInProgress = false;
@@ -460,9 +461,9 @@ export class Orchestrator implements IOrchestrator {
       this.startAgentHealthMonitoring(profile.id);
 
       return session.id;
-    } catch (error) {
-      this.logger.error('Failed to spawn agent', { agentId: profile.id, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to spawn agent', { agentId: profile.id, err });
+      throw err;
     }
   }
 
@@ -499,9 +500,9 @@ export class Orchestrator implements IOrchestrator {
         agentId,
         reason: 'User requested',
       });
-    } catch (error) {
-      this.logger.error('Failed to terminate agent', { agentId, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to terminate agent', { agentId, err });
+      throw err;
     }
   }
 
@@ -545,9 +546,9 @@ export class Orchestrator implements IOrchestrator {
           agentId: task.assignedAgent,
         });
       });
-    } catch (error) {
-      this.logger.error('Failed to assign task', { taskId: task.id, error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to assign task', { taskId: task.id, err });
+      throw err;
     }
   }
 
@@ -611,8 +612,8 @@ export class Orchestrator implements IOrchestrator {
           timestamp: new Date(),
         };
       });
-    } catch (error) {
-      this.logger.error('Health check failed', error);
+    } catch (err) {
+      this.logger.error('Health check failed', err);
       
       // Return degraded status if health check fails
       return {
@@ -679,8 +680,8 @@ export class Orchestrator implements IOrchestrator {
       }
 
       this.logger.debug('Maintenance tasks completed');
-    } catch (error) {
-      this.logger.error('Error during maintenance', error);
+    } catch (err) {
+      this.logger.error('Error during maintenance', err);
     }
   }
 
@@ -783,8 +784,8 @@ export class Orchestrator implements IOrchestrator {
           // Attempt recovery for unhealthy components
           await this.recoverUnhealthyComponents(health);
         }
-      } catch (error) {
-        this.logger.error('Health check error', error);
+      } catch (err) {
+        this.logger.error('Health check err', err);
       }
     }, this.config.orchestrator.healthCheckInterval);
   }
@@ -803,8 +804,8 @@ export class Orchestrator implements IOrchestrator {
         
         // Emit metrics event for monitoring systems
         this.eventBus.emit('metrics:collected', metrics);
-      } catch (error) {
-        this.logger.error('Metrics collection error', error);
+      } catch (err) {
+        this.logger.error('Metrics collection err', err);
       }
     }, this.config.orchestrator.metricsInterval || 60000); // 1 minute default
   }
@@ -851,8 +852,8 @@ export class Orchestrator implements IOrchestrator {
         this.coordinationManager.shutdown().catch(() => {}),
         this.mcpServer.stop().catch(() => {}),
       ]);
-    } catch (error) {
-      this.logger.error('Emergency shutdown error', error);
+    } catch (err) {
+      this.logger.error('Emergency shutdown err', err);
     }
   }
 
@@ -882,10 +883,10 @@ export class Orchestrator implements IOrchestrator {
           // Remove agent from available list
           const index = availableAgents.indexOf(agent);
           availableAgents.splice(index, 1);
-        } catch (error) {
+        } catch (err) {
           // Put task back in queue
           this.taskQueue.unshift(task);
-          this.logger.error('Failed to assign task', { taskId: task.id, error });
+          this.logger.error('Failed to assign task', { taskId: task.id, err });
           break;
         }
       } else {
@@ -909,8 +910,8 @@ export class Orchestrator implements IOrchestrator {
             if (taskCount < profile.maxConcurrentTasks) {
               available.push(profile);
             }
-          } catch (error) {
-            this.logger.error('Failed to get agent task count', { agentId: profile.id, error });
+          } catch (err) {
+            this.logger.error('Failed to get agent task count', { agentId: profile.id, err });
           }
         }
       }
@@ -978,12 +979,12 @@ export class Orchestrator implements IOrchestrator {
         health.metrics = result.metrics;
       }
       return health;
-    } catch (error) {
+    } catch (err) {
       return {
         name,
         status: 'unhealthy',
         lastCheck: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }
@@ -1008,9 +1009,9 @@ export class Orchestrator implements IOrchestrator {
     try {
       await retry(init, { maxAttempts: 3, initialDelay: 2000 });
       this.logger.info(`${name} initialized`);
-    } catch (error) {
-      this.logger.error(`Failed to initialize ${name}`, error);
-      throw new InitializationError(name, { error });
+    } catch (err) {
+      this.logger.error(`Failed to initialize ${name}`, err);
+      throw new InitializationError(name, { err });
     }
   }
 
@@ -1021,9 +1022,9 @@ export class Orchestrator implements IOrchestrator {
         delay(10000) // 10 second timeout per component
       ]);
       this.logger.info(`${name} shut down`);
-    } catch (error) {
-      this.logger.error(`Failed to shutdown ${name}`, error);
-      throw error;
+    } catch (err) {
+      this.logger.error(`Failed to shutdown ${name}`, err);
+      throw err;
     }
   }
 
@@ -1160,8 +1161,8 @@ export class Orchestrator implements IOrchestrator {
           reason: 'Agent termination',
         });
       }
-    } catch (error) {
-      this.logger.error('Failed to cancel agent tasks', { agentId, error });
+    } catch (err) {
+      this.logger.error('Failed to cancel agent tasks', { agentId, err });
     }
   }
 

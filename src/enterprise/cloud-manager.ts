@@ -1,9 +1,10 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
-import { join } from 'path';
+import { join } from 'node:path';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface CloudProvider {
   id: string;
   name: string;
@@ -412,9 +413,9 @@ export class CloudManager extends EventEmitter {
       await this.initializeDefaultProviders();
       
       this.logger.info('Cloud Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Cloud Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Cloud Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -456,9 +457,9 @@ export class CloudManager extends EventEmitter {
     try {
       await this.validateProviderCredentials(provider);
       provider.status = 'active';
-    } catch (error) {
-      provider.status = 'error';
-      this.logger.warn(`Provider credentials validation failed: ${provider.name}`, { error });
+    } catch (err) {
+      provider.status = 'err';
+      this.logger.warn(`Provider credentials validation failed: ${provider.name}`, { error: getErrorMessage(err) });
     }
 
     this.providers.set(provider.id, provider);
@@ -678,7 +679,7 @@ export class CloudManager extends EventEmitter {
       this.emit('infrastructure:deployment_completed', { infrastructure, deployment });
       this.logger.info(`Infrastructure deployment completed: ${infrastructure.name} in ${duration}ms`);
 
-    } catch (error) {
+    } catch (err) {
       const endTime = new Date();
       const duration = endTime.getTime() - startTime.getTime();
 
@@ -697,10 +698,10 @@ export class CloudManager extends EventEmitter {
 
       await this.saveInfrastructure(infrastructure);
 
-      this.emit('infrastructure:deployment_failed', { infrastructure, deployment, error });
-      this.logger.error(`Infrastructure deployment failed: ${infrastructure.name}`, { error });
+      this.emit('infrastructure:deployment_failed', { infrastructure, deployment, err });
+      this.logger.error(`Infrastructure deployment failed: ${infrastructure.name}`, { error: getErrorMessage(err) });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -1016,8 +1017,8 @@ export class CloudManager extends EventEmitter {
       }
 
       this.logger.info(`Loaded ${this.providers.size} providers, ${this.resources.size} resources, ${this.infrastructures.size} infrastructures`);
-    } catch (error) {
-      this.logger.warn('Failed to load some cloud configurations', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load some cloud configurations', { error: getErrorMessage(err) });
     }
   }
 
@@ -1228,14 +1229,14 @@ export class CloudManager extends EventEmitter {
       this.emit('resource:provisioned', resource);
       this.logger.info(`Resource provisioned successfully: ${resource.name}`);
       
-    } catch (error) {
-      resource.status = 'error';
+    } catch (err) {
+      resource.status = 'err';
       resource.updatedAt = new Date();
       await this.saveResource(resource);
       
-      this.emit('resource:provision_failed', { resource, error });
-      this.logger.error(`Resource provisioning failed: ${resource.name}`, { error });
-      throw error;
+      this.emit('resource:provision_failed', { resource, err });
+      this.logger.error(`Resource provisioning failed: ${resource.name}`, { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -1249,10 +1250,10 @@ export class CloudManager extends EventEmitter {
       this.emit('resource:deprovisioned', resource);
       this.logger.info(`Resource deprovisioned successfully: ${resource.name}`);
       
-    } catch (error) {
-      this.emit('resource:deprovision_failed', { resource, error });
-      this.logger.error(`Resource deprovisioning failed: ${resource.name}`, { error });
-      throw error;
+    } catch (err) {
+      this.emit('resource:deprovision_failed', { resource, err });
+      this.logger.error(`Resource deprovisioning failed: ${resource.name}`, { error: getErrorMessage(err) });
+      throw err;
     }
   }
 

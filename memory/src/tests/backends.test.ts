@@ -2,7 +2,7 @@
  * SPARC Memory Bank - Backend Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+// Jest imports are globally available, no need to import them
 import { SqliteBackend } from '../backends/sqlite-backend';
 import { MarkdownBackend } from '../backends/markdown-backend';
 import { MemoryItem, MemoryBackend } from '../types';

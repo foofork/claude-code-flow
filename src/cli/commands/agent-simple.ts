@@ -8,6 +8,14 @@ import { DistributedMemorySystem } from '../../memory/distributed-memory.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
 
+// Helper function for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 // Global instances
 let agentManager: AgentManager | null = null;
 let agentRegistry: AgentRegistry | null = null;
@@ -28,9 +36,17 @@ async function initializeAgentSystem(): Promise<{ manager: AgentManager; registr
     const eventBus = EventBus.getInstance();
     
     const memorySystem = new DistributedMemorySystem({
-      backend: 'markdown',
-      path: './memory'
-    });
+      namespace: 'agents',
+      distributed: false,
+      consistency: 'eventual' as any,
+      replicationFactor: 1,
+      syncInterval: 5000,
+      maxMemorySize: 100 * 1024 * 1024, // 100MB
+      compressionEnabled: true,
+      encryptionEnabled: false,
+      backupEnabled: true,
+      persistenceEnabled: true
+    }, logger, eventBus);
     
     await memorySystem.initialize();
     
@@ -59,7 +75,7 @@ async function initializeAgentSystem(): Promise<{ manager: AgentManager; registr
     
     return { manager: agentManager, registry: agentRegistry };
   } catch (error) {
-    throw new Error(`Failed to initialize agent system: ${error.message}`);
+    throw new Error(`Failed to initialize agent system: ${getErrorMessage(error)}`);
   }
 }
 
@@ -94,7 +110,7 @@ export const agentCommands = {
       console.log(`   Template: ${templateName}`);
       
     } catch (error) {
-      console.error('❌ Error creating agent:', error.message);
+      console.error('❌ Error creating agent:', getErrorMessage(error));
     }
   },
 
@@ -154,7 +170,7 @@ export const agentCommands = {
       console.log(`   Average Health: ${Math.round(stats.averageHealth * 100)}%`);
       
     } catch (error) {
-      console.error('❌ Error listing agents:', error.message);
+      console.error('❌ Error listing agents:', getErrorMessage(error));
     }
   },
 
@@ -248,7 +264,7 @@ export const agentCommands = {
       }
       
     } catch (error) {
-      console.error('❌ Error getting agent info:', error.message);
+      console.error('❌ Error getting agent info:', getErrorMessage(error));
     }
   },
 
@@ -298,7 +314,7 @@ export const agentCommands = {
       }
       
     } catch (error) {
-      console.error('❌ Error terminating agent:', error.message);
+      console.error('❌ Error terminating agent:', getErrorMessage(error));
     }
   },
 
@@ -318,7 +334,7 @@ export const agentCommands = {
       console.log('✅ Agent started successfully');
       
     } catch (error) {
-      console.error('❌ Error starting agent:', error.message);
+      console.error('❌ Error starting agent:', getErrorMessage(error));
     }
   },
 
@@ -339,7 +355,7 @@ export const agentCommands = {
       console.log('✅ Agent restarted successfully');
       
     } catch (error) {
-      console.error('❌ Error restarting agent:', error.message);
+      console.error('❌ Error restarting agent:', getErrorMessage(error));
     }
   },
 
@@ -375,7 +391,7 @@ export const agentCommands = {
       console.log(`  Disk: ${Math.round(stats.resourceUtilization.disk / 1024 / 1024)}MB`);
       
     } catch (error) {
-      console.error('❌ Error getting health status:', error.message);
+      console.error('❌ Error getting health status:', getErrorMessage(error));
     }
   },
 

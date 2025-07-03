@@ -1,10 +1,11 @@
 import { Command, CommandContext } from '../cli-core.js';
 import { success, error, warning, info } from '../cli-core.js';
+import { getErrorMessage } from '../../utils/error-handler.js';
 import colors from 'chalk';
 import { ProjectManager, Project } from '../../enterprise/project-manager.js';
 import { DeploymentManager, Deployment, DeploymentEnvironment } from '../../enterprise/deployment-manager.js';
 import { CloudManager, CloudProvider, CloudResource } from '../../enterprise/cloud-manager.js';
-import { SecurityManager, SecurityScan } from '../../enterprise/security-manager.js';
+import { SecurityManager, SecurityScan, SecuritySeverity } from '../../enterprise/security-manager.js';
 import { AnalyticsManager } from '../../enterprise/analytics-manager.js';
 import { AuditManager } from '../../enterprise/audit-manager.js';
 import { Logger } from '../../core/logger.js';
@@ -96,8 +97,8 @@ export const enterpriseCommands: Command[] = [
             const project = await manager.createProject({
               name,
               description: ctx.flags.description as string || `Project: ${name}`,
-              type: (ctx.flags.type as any) || 'custom',
-              priority: (ctx.flags.priority as any) || 'medium',
+              type: (ctx.flags.type as 'web-app' | 'api' | 'microservice' | 'infrastructure' | 'research' | 'migration' | 'custom') || 'custom',
+              priority: (ctx.flags.priority as 'low' | 'medium' | 'high' | 'critical') || 'medium',
               owner: ctx.flags.owner as string || 'system',
               stakeholders: ctx.flags.stakeholders ? 
                 (ctx.flags.stakeholders as string).split(',') : []
@@ -114,7 +115,7 @@ export const enterpriseCommands: Command[] = [
               console.log(`${blue('Budget:')} ${project.budget.total} ${project.budget.currency}`);
             }
           } catch (err) {
-            error(`Failed to create project: ${(err as Error).message}`);
+            error(`Failed to create project: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -147,7 +148,7 @@ export const enterpriseCommands: Command[] = [
               console.log(`  Owner: ${project.owner} | Updated: ${project.updatedAt.toLocaleDateString()}`);
               
               if (ctx.flags.verbose) {
-                const progress = manager['calculateProjectProgress'] ? 
+                const progress = 'calculateProjectProgress' in manager && typeof (manager as any).calculateProjectProgress === 'function' ?
                   await (manager as any).calculateProjectProgress(project) : 0;
                 console.log(`  Progress: ${progress.toFixed(1)}% | Phases: ${project.phases.length}`);
                 console.log(`  Budget: ${project.budget.spent}/${project.budget.total} ${project.budget.currency}`);
@@ -155,7 +156,7 @@ export const enterpriseCommands: Command[] = [
               console.log();
             }
           } catch (err) {
-            error(`Failed to list projects: ${(err as Error).message}`);
+            error(`Failed to list projects: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -213,7 +214,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to show project: ${(err as Error).message}`);
+            error(`Failed to show project: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -233,14 +234,14 @@ export const enterpriseCommands: Command[] = [
             console.log(`${blue('Resource Utilization:')} ${(metrics.resourceUtilization * 100).toFixed(1)}%`);
             console.log(`${blue('Quality Score:')} ${metrics.qualityScore.toFixed(1)}%`);
           } catch (err) {
-            error(`Failed to get metrics: ${(err as Error).message}`);
+            error(`Failed to get metrics: ${getErrorMessage(err)}`);
           }
           break;
         }
 
         case 'report': {
           const projectId = ctx.args[1];
-          const reportType = (ctx.args[2] as any) || 'status';
+          const reportType = (ctx.args[2] as "resource" | "status" | "financial" | "quality" | "risk" | "compliance") || 'status';
 
           if (!projectId) {
             error('Usage: project report <project-id> [type]');
@@ -267,7 +268,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to generate report: ${(err as Error).message}`);
+            error(`Failed to generate report: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -366,7 +367,7 @@ export const enterpriseCommands: Command[] = [
               warning('Dry run - deployment not executed');
             }
           } catch (err) {
-            error(`Failed to create deployment: ${(err as Error).message}`);
+            error(`Failed to create deployment: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -403,7 +404,7 @@ export const enterpriseCommands: Command[] = [
               console.log();
             }
           } catch (err) {
-            error(`Failed to list deployments: ${(err as Error).message}`);
+            error(`Failed to list deployments: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -422,7 +423,7 @@ export const enterpriseCommands: Command[] = [
             success(`Rollback initiated for deployment: ${deploymentId}`);
             console.log(`${blue('Reason:')} ${reason}`);
           } catch (err) {
-            error(`Failed to rollback deployment: ${(err as Error).message}`);
+            error(`Failed to rollback deployment: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -459,7 +460,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to get metrics: ${(err as Error).message}`);
+            error(`Failed to get metrics: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -478,12 +479,20 @@ export const enterpriseCommands: Command[] = [
               try {
                 const environment = await manager.createEnvironment({
                   name,
-                  type: (ctx.flags.type as any) || 'development',
+                  type: (ctx.flags.type as 'development' | 'staging' | 'production' | 'testing' | 'custom') || 'development',
                   configuration: {
                     region: ctx.flags.region as string || 'us-east-1',
-                    provider: (ctx.flags.provider as any) || 'aws',
+                    provider: (ctx.flags.provider as 'aws' | 'gcp' | 'azure' | 'kubernetes' | 'docker' | 'custom') || 'aws',
                     endpoints: ctx.flags.endpoints ? 
-                      (ctx.flags.endpoints as string).split(',') : []
+                      (ctx.flags.endpoints as string).split(',') : [],
+                    secrets: {},
+                    environment_variables: {},
+                    resources: {
+                      compute: [] as any[],
+                      storage: [] as any[],
+                      network: [] as any[],
+                      database: [] as any[]
+                    }
                   }
                 });
 
@@ -493,7 +502,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Region:')} ${environment.configuration.region}`);
                 console.log(`${blue('Provider:')} ${environment.configuration.provider}`);
               } catch (err) {
-                error(`Failed to create environment: ${(err as Error).message}`);
+                error(`Failed to create environment: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -565,7 +574,7 @@ export const enterpriseCommands: Command[] = [
           switch (providerCmd) {
             case 'add': {
               const name = ctx.args[2];
-              const type = ctx.args[3] as any;
+              const type = ctx.args[3] as 'aws' | 'gcp' | 'azure' | 'kubernetes' | 'docker' | 'digitalocean' | 'linode' | 'custom';
 
               if (!name || !type) {
                 error('Usage: cloud providers add <name> <type>');
@@ -584,7 +593,10 @@ export const enterpriseCommands: Command[] = [
                   configuration: {
                     defaultRegion: ctx.flags.region as string || 'us-east-1',
                     availableRegions: ctx.flags.regions ? 
-                      (ctx.flags.regions as string).split(',') : []
+                      (ctx.flags.regions as string).split(',') : [],
+                    services: [],
+                    endpoints: {},
+                    features: []
                   }
                 });
 
@@ -594,7 +606,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Status:')} ${provider.status}`);
                 console.log(`${blue('Default Region:')} ${provider.configuration.defaultRegion}`);
               } catch (err) {
-                error(`Failed to add provider: ${(err as Error).message}`);
+                error(`Failed to add provider: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -619,7 +631,7 @@ export const enterpriseCommands: Command[] = [
           switch (resourceCmd) {
             case 'create': {
               const name = ctx.args[2];
-              const type = ctx.args[3] as any;
+              const type = ctx.args[3] as 'compute' | 'storage' | 'network' | 'database' | 'cache' | 'queue' | 'function' | 'custom';
 
               if (!name || !type) {
                 error('Usage: cloud resources create <name> <type> --provider <provider-id>');
@@ -652,7 +664,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Region:')} ${resource.region}`);
                 console.log(`${blue('Monthly Cost:')} $${resource.costs.monthlyEstimate.toFixed(2)}`);
               } catch (err) {
-                error(`Failed to create resource: ${(err as Error).message}`);
+                error(`Failed to create resource: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -678,7 +690,7 @@ export const enterpriseCommands: Command[] = [
 
                 success(`Resource scaled: ${resourceId}`);
               } catch (err) {
-                error(`Failed to scale resource: ${(err as Error).message}`);
+                error(`Failed to scale resource: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -694,7 +706,7 @@ export const enterpriseCommands: Command[] = [
                 await manager.deleteResource(resourceId);
                 success(`Resource deleted: ${resourceId}`);
               } catch (err) {
-                error(`Failed to delete resource: ${(err as Error).message}`);
+                error(`Failed to delete resource: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -734,7 +746,7 @@ export const enterpriseCommands: Command[] = [
             const totalSavings = optimizations.reduce((sum, opt) => sum + opt.potentialSavings, 0);
             success(`Total potential savings: $${totalSavings.toFixed(2)}/month`);
           } catch (err) {
-            error(`Failed to analyze cost optimization: ${(err as Error).message}`);
+            error(`Failed to analyze cost optimization: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -771,7 +783,7 @@ export const enterpriseCommands: Command[] = [
             console.log(`  Encryption Coverage: ${metrics.security.encryptionCoverage.toFixed(1)}%`);
             console.log(`  Backup Coverage: ${metrics.security.backupCoverage.toFixed(1)}%`);
           } catch (err) {
-            error(`Failed to get metrics: ${(err as Error).message}`);
+            error(`Failed to get metrics: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -834,7 +846,7 @@ export const enterpriseCommands: Command[] = [
           try {
             const scan = await manager.createSecurityScan({
               name,
-              type: (ctx.flags.type as any) || 'vulnerability',
+              type: (ctx.flags.type as 'vulnerability' | 'dependency' | 'code-quality' | 'secrets' | 'compliance' | 'infrastructure' | 'container') || 'vulnerability',
               target: {
                 type: 'repository',
                 path: target,
@@ -843,7 +855,7 @@ export const enterpriseCommands: Command[] = [
               projectId: ctx.flags.project as string,
               configuration: {
                 severity: ctx.flags.severity ? 
-                  (ctx.flags.severity as string).split(',') as any : undefined,
+                  (ctx.flags.severity as string).split(',') as SecuritySeverity[] : undefined,
                 formats: ctx.flags.format ? 
                   (ctx.flags.format as string).split(',') : undefined
               }
@@ -868,7 +880,7 @@ export const enterpriseCommands: Command[] = [
               console.log(`${blue('Duration:')} ${(updatedScan.metrics.scanDuration / 1000).toFixed(1)}s`);
             }
           } catch (err) {
-            error(`Failed to execute scan: ${(err as Error).message}`);
+            error(`Failed to execute scan: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -888,8 +900,8 @@ export const enterpriseCommands: Command[] = [
                 const incident = await manager.createSecurityIncident({
                   title,
                   description: ctx.args.slice(3).join(' ') || title,
-                  severity: (ctx.flags.severity as any) || 'medium',
-                  type: (ctx.flags.type as any) || 'security-breach',
+                  severity: (ctx.flags.severity as SecuritySeverity) || 'medium',
+                  type: (ctx.flags.type as 'security-breach' | 'vulnerability-exploit' | 'policy-violation' | 'suspicious-activity' | 'compliance-violation') || 'security-breach',
                   source: {
                     type: 'user-report',
                     details: { reporter: 'cli-user' }
@@ -907,7 +919,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Status:')} ${incident.status}`);
                 console.log(`${blue('Assigned To:')} ${incident.response.assignedTo.join(', ')}`);
               } catch (err) {
-                error(`Failed to create incident: ${(err as Error).message}`);
+                error(`Failed to create incident: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -963,7 +975,7 @@ export const enterpriseCommands: Command[] = [
               console.log();
             }
           } catch (err) {
-            error(`Failed to run compliance assessment: ${(err as Error).message}`);
+            error(`Failed to run compliance assessment: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -998,7 +1010,7 @@ export const enterpriseCommands: Command[] = [
             console.log(`  MTTD: ${(metrics.incidents.meanTimeToDetection / 1000 / 60).toFixed(1)} minutes`);
             console.log(`  MTTR: ${(metrics.incidents.meanTimeToResolution / 1000 / 60 / 60).toFixed(1)} hours`);
           } catch (err) {
-            error(`Failed to get security metrics: ${(err as Error).message}`);
+            error(`Failed to get security metrics: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1058,7 +1070,7 @@ export const enterpriseCommands: Command[] = [
                 const dashboard = await manager.createDashboard({
                   name,
                   description: ctx.args.slice(3).join(' ') || `Dashboard: ${name}`,
-                  type: (ctx.flags.type as any) || 'operational',
+                  type: (ctx.flags.type as 'custom' | 'security' | 'business' | 'technical' | 'operational' | 'executive') || 'operational',
                   widgets: [] // Would be populated based on template
                 });
 
@@ -1067,7 +1079,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Type:')} ${dashboard.type}`);
                 console.log(`${blue('Widgets:')} ${dashboard.widgets.length}`);
               } catch (err) {
-                error(`Failed to create dashboard: ${(err as Error).message}`);
+                error(`Failed to create dashboard: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -1145,7 +1157,7 @@ export const enterpriseCommands: Command[] = [
               console.log();
             }
           } catch (err) {
-            error(`Failed to generate insights: ${(err as Error).message}`);
+            error(`Failed to generate insights: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1234,7 +1246,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to get ${metricType} metrics: ${(err as Error).message}`);
+            error(`Failed to get ${metricType} metrics: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1258,7 +1270,7 @@ export const enterpriseCommands: Command[] = [
                 const model = await manager.trainPredictiveModel({
                   name,
                   description: `Predictive model: ${name}`,
-                  type: (ctx.flags.type as any) || 'regression',
+                  type: (ctx.flags.type as 'regression' | 'classification' | 'time-series' | 'anomaly-detection') || 'regression',
                   algorithm: ctx.flags.algorithm as string || 'linear-regression',
                   features,
                   target,
@@ -1275,7 +1287,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Accuracy:')} ${model.accuracy.toFixed(1)}%`);
                 console.log(`${blue('Features:')} ${model.features.join(', ')}`);
               } catch (err) {
-                error(`Failed to train model: ${(err as Error).message}`);
+                error(`Failed to train model: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -1300,7 +1312,7 @@ export const enterpriseCommands: Command[] = [
                 console.log(`${blue('Prediction:')} ${JSON.stringify(prediction.prediction)}`);
                 console.log(`${blue('Confidence:')} ${prediction.confidence.toFixed(1)}%`);
               } catch (err) {
-                error(`Failed to make prediction: ${(err as Error).message}`);
+                error(`Failed to make prediction: ${getErrorMessage(err)}`);
               }
               break;
             }
@@ -1370,9 +1382,9 @@ export const enterpriseCommands: Command[] = [
 
           try {
             const entry = await manager.logAuditEvent({
-              eventType,
-              category: (ctx.flags.category as any) || 'system-change',
-              severity: (ctx.flags.severity as any) || 'medium',
+              eventType: eventType as 'security' | 'data-access' | 'compliance' | 'business' | 'authentication' | 'authorization' | 'system-change',
+              category: (ctx.flags.category as 'security' | 'data-access' | 'compliance' | 'business' | 'authentication' | 'authorization' | 'system-change') || 'system-change',
+              severity: (ctx.flags.severity as 'low' | 'medium' | 'high' | 'critical') || 'medium',
               userId: ctx.flags.user as string,
               resource: {
                 type: ctx.flags.resourceType as string || 'system',
@@ -1380,7 +1392,7 @@ export const enterpriseCommands: Command[] = [
                 name: ctx.flags.resourceName as string
               },
               action,
-              outcome: (ctx.flags.outcome as any) || 'success',
+              outcome: (ctx.flags.outcome as 'success' | 'partial' | 'failure' | 'denied') || 'success',
               details: ctx.flags.details ? JSON.parse(ctx.flags.details as string) : {},
               context: {
                 source: 'cli',
@@ -1400,13 +1412,13 @@ export const enterpriseCommands: Command[] = [
             console.log(`${blue('Outcome:')} ${entry.outcome}`);
             console.log(`${blue('Timestamp:')} ${entry.timestamp.toISOString()}`);
           } catch (err) {
-            error(`Failed to log audit event: ${(err as Error).message}`);
+            error(`Failed to log audit event: ${getErrorMessage(err)}`);
           }
           break;
         }
 
         case 'report': {
-          const reportType = (ctx.args[1] as any) || 'compliance';
+          const reportType = (ctx.args[1] as string) || 'compliance';
 
           try {
             const timeRange = ctx.flags.timerange as string || '30d';
@@ -1433,9 +1445,12 @@ export const enterpriseCommands: Command[] = [
             const report = await manager.generateAuditReport({
               title: `${reportType.toUpperCase()} Audit Report`,
               description: `Automated ${reportType} audit report for ${timeRange}`,
-              type: reportType,
+              type: reportType as 'custom' | 'security' | 'financial' | 'compliance' | 'investigation' | 'operational',
               scope: {
                 timeRange: { start, end: now },
+                systems: [],
+                users: [],
+                events: [],
                 compliance: ctx.flags.framework ? [ctx.flags.framework as string] : []
               }
             });
@@ -1466,14 +1481,14 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to generate audit report: ${(err as Error).message}`);
+            error(`Failed to generate audit report: ${getErrorMessage(err)}`);
           }
           break;
         }
 
         case 'export': {
           try {
-            const format = (ctx.flags.export as any) || 'json';
+            const format = (ctx.flags.export as string) || 'json';
             const timeRange = ctx.flags.timerange as string || '30d';
             const now = new Date();
             let start: Date;
@@ -1496,7 +1511,7 @@ export const enterpriseCommands: Command[] = [
             }
 
             const filepath = await manager.exportAuditData({
-              format,
+              format: format as 'json' | 'pdf' | 'csv' | 'xml',
               scope: {
                 timeRange: { start, end: now },
                 categories: ctx.flags.categories ? 
@@ -1515,7 +1530,7 @@ export const enterpriseCommands: Command[] = [
             console.log(`${blue('Encrypted:')} ${ctx.flags.encrypt ? 'Yes' : 'No'}`);
             console.log(`${blue('Compressed:')} ${ctx.flags.compress ? 'Yes' : 'No'}`);
           } catch (err) {
-            error(`Failed to export audit data: ${(err as Error).message}`);
+            error(`Failed to export audit data: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1542,7 +1557,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to verify audit integrity: ${(err as Error).message}`);
+            error(`Failed to verify audit integrity: ${getErrorMessage(err)}`);
           }
           break;
         }
@@ -1601,7 +1616,7 @@ export const enterpriseCommands: Command[] = [
               }
             }
           } catch (err) {
-            error(`Failed to get audit metrics: ${(err as Error).message}`);
+            error(`Failed to get audit metrics: ${getErrorMessage(err)}`);
           }
           break;
         }

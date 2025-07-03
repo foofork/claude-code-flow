@@ -1,10 +1,11 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
-import { join } from 'path';
-import { spawn, ChildProcess } from 'child_process';
+import { join } from 'node:path';
+import { spawn, ChildProcess } from 'node:child_process';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface DeploymentEnvironment {
   id: string;
   name: string;
@@ -316,9 +317,9 @@ export class DeploymentManager extends EventEmitter {
       await this.initializeDefaultStrategies();
       
       this.logger.info('Deployment Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Deployment Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Deployment Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -487,8 +488,8 @@ export class DeploymentManager extends EventEmitter {
       }
 
       await this.completeDeployment(deployment);
-    } catch (error) {
-      await this.handleDeploymentError(deployment, error);
+    } catch (err) {
+      await this.handleDeploymentError(deployment, err);
     }
   }
 
@@ -533,11 +534,11 @@ export class DeploymentManager extends EventEmitter {
       
       this.addLog(stage, 'info', `Stage completed successfully in ${stage.duration}ms`, 'system');
       
-    } catch (error) {
+    } catch (err) {
       stage.status = 'failed';
       stage.endTime = new Date();
       
-      this.addLog(stage, 'error', `Stage failed: ${error.message}`, 'system');
+      this.addLog(stage, 'err', `Stage failed: ${getErrorMessage(err)}`, 'system');
       
       // Retry logic
       if (stage.retryPolicy.maxRetries > 0) {
@@ -675,14 +676,14 @@ export class DeploymentManager extends EventEmitter {
       this.emit('deployment:rolled-back', deployment);
       this.logger.info(`Deployment rolled back: ${deploymentId}`);
 
-    } catch (error) {
+    } catch (err) {
       this.addAuditEntry(deployment, userId, 'rollback_failed', 'deployment', {
         deploymentId,
-        error: error.message
+        error: getErrorMessage(err)
       });
 
-      this.logger.error(`Rollback failed for deployment ${deploymentId}`, { error });
-      throw error;
+      this.logger.error(`Rollback failed for deployment ${deploymentId}`, { error: getErrorMessage(err) });
+      throw err;
     }
 
     await this.saveDeployment(deployment);
@@ -804,8 +805,8 @@ export class DeploymentManager extends EventEmitter {
       }
 
       this.logger.info(`Loaded ${this.environments.size} environments, ${this.strategies.size} strategies, ${this.pipelines.size} pipelines`);
-    } catch (error) {
-      this.logger.warn('Failed to load some configurations', { error });
+    } catch (err) {
+      this.logger.warn('Failed to load some configurations', { error: getErrorMessage(err) });
     }
   }
 

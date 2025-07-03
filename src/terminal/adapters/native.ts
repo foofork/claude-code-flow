@@ -2,13 +2,14 @@
  * Native terminal adapter implementation
  */
 
-import { spawn, ChildProcess } from 'child_process';
-import { platform } from 'os';
+import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { platform } from 'node:os';
 import { ITerminalAdapter, Terminal } from './base.js';
 import { ILogger } from '../../core/logger.js';
 import { TerminalError, TerminalCommandError } from '../../utils/errors.js';
 import { generateId, delay, timeout, createDeferred } from '../../utils/helpers.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * Platform-specific shell configuration
  */
@@ -75,9 +76,9 @@ class NativeTerminal implements Terminal {
         pid: this.pid,
         shell: this.shell,
       });
-    } catch (error) {
+    } catch (err) {
       this.alive = false;
-      throw new TerminalError('Failed to create native terminal', { error });
+      throw new TerminalError('Failed to create native terminal', { err });
     }
   }
 
@@ -105,8 +106,8 @@ class NativeTerminal implements Terminal {
       );
       
       return output;
-    } catch (error) {
-      throw new TerminalCommandError('Failed to execute command', { command, error });
+    } catch (err) {
+      throw new TerminalCommandError('Failed to execute command', { command, err });
     }
   }
 
@@ -177,8 +178,8 @@ class NativeTerminal implements Terminal {
       } catch {
         // Process might already be dead
       }
-    } catch (error) {
-      this.logger.warn('Error killing native terminal', { id: this.id, error });
+    } catch (err) {
+      this.logger.warn('Error killing native terminal', { id: this.id, err });
     } finally {
       this.process = undefined;
     }
@@ -310,8 +311,8 @@ class NativeTerminal implements Terminal {
     this.outputListeners.forEach(listener => {
       try {
         listener(data);
-      } catch (error) {
-        this.logger.error('Error in output listener', { id: this.id, error });
+      } catch (err) {
+        this.logger.error('Error in output listener', { id: this.id, err });
       }
     });
   }
@@ -383,14 +384,14 @@ export class NativeAdapter implements ITerminalAdapter {
     // Verify shell is available
     try {
       const testConfig = this.getTestCommand();
-      const { spawnSync } = require('child_process');
+      // spawnSync already imported at top
       const result = spawnSync(testConfig.cmd, testConfig.args, { stdio: 'ignore' });
       
       if (result.status !== 0) {
         throw new Error('Shell test failed');
       }
-    } catch (error) {
-      this.logger.warn(`Shell ${this.shell} not available, falling back to sh`, { error });
+    } catch (err) {
+      this.logger.warn(`Shell ${this.shell} not available, falling back to sh`, { err });
       this.shell = 'sh';
     }
   }
@@ -431,7 +432,7 @@ export class NativeAdapter implements ITerminalAdapter {
       
       // Check if PowerShell is available
       try {
-        const { spawnSync } = require('child_process');
+        // spawnSync already imported at top
         const result = spawnSync('powershell', ['-Version'], { stdio: 'ignore' });
         if (result.status === 0) {
           return 'powershell';
@@ -455,7 +456,7 @@ export class NativeAdapter implements ITerminalAdapter {
       const shells = ['bash', 'zsh', 'sh'];
       for (const shell of shells) {
         try {
-          const { spawnSync } = require('child_process');
+          // spawnSync already imported at top
           const result = spawnSync('which', [shell], { stdio: 'ignore' });
           if (result.status === 0) {
             return shell;

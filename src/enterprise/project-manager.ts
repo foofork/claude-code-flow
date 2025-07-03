@@ -1,9 +1,10 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { writeFile, readFile, mkdir, readdir, stat } from 'fs/promises';
-import { join } from 'path';
+import { join } from 'node:path';
 import { Logger } from '../core/logger.js';
 import { ConfigManager } from '../core/config.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ProjectPhase {
   id: string;
   name: string;
@@ -218,9 +219,9 @@ export class ProjectManager extends EventEmitter {
       await mkdir(this.projectsPath, { recursive: true });
       await this.loadProjects();
       this.logger.info('Project Manager initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize Project Manager', { error });
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize Project Manager', { error: getErrorMessage(err) });
+      throw err;
     }
   }
 
@@ -631,14 +632,14 @@ export class ProjectManager extends EventEmitter {
           const content = await readFile(join(this.projectsPath, file), 'utf-8');
           const project: Project = JSON.parse(content);
           this.projects.set(project.id, project);
-        } catch (error) {
-          this.logger.error(`Failed to load project file: ${file}`, { error });
+        } catch (err) {
+          this.logger.error(`Failed to load project file: ${file}`, { error: getErrorMessage(err) });
         }
       }
 
       this.logger.info(`Loaded ${this.projects.size} projects`);
-    } catch (error) {
-      this.logger.error('Failed to load projects', { error });
+    } catch (err) {
+      this.logger.error('Failed to load projects', { error: getErrorMessage(err) });
     }
   }
 

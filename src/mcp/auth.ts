@@ -7,6 +7,7 @@ import { ILogger } from '../core/logger.js';
 import { MCPError } from '../utils/errors.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface IAuthManager {
   authenticate(credentials: unknown): Promise<AuthResult>;
   authorize(session: MCPSession, permission: string): boolean;
@@ -83,11 +84,11 @@ export class AuthManager implements IAuthManager {
             error: `Unsupported authentication method: ${this.config.method}`,
           };
       }
-    } catch (error) {
-      this.logger.error('Authentication error', error);
+    } catch (err) {
+      this.logger.error('Authentication err', err);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Authentication failed',
+        error: err instanceof Error ? getErrorMessage(err) : 'Authentication failed',
       };
     }
   }

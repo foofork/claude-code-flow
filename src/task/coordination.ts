@@ -3,10 +3,11 @@
  * Provides seamless coordination between task management and Claude Code batch tools
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { TaskEngine, WorkflowTask, TaskExecution } from './engine.js';
 import { generateId } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface TodoItem {
   id: string;
   content: string;
@@ -229,7 +230,7 @@ export class TaskCoordinator extends EventEmitter {
       try {
         const value = await this.memoryManager.retrieve(memoryKey);
         if (value !== null) return value;
-      } catch (error) {
+      } catch (err) {
         // Fall back to local store
       }
     }
@@ -339,8 +340,8 @@ export class TaskCoordinator extends EventEmitter {
           coordinationContext
         });
 
-      } catch (error) {
-        batchOperation.errors.set(task.agentType, error as Error);
+      } catch (err) {
+        batchOperation.errors.set(task.agentType, err as Error);
       }
     }
 
@@ -387,7 +388,7 @@ export class TaskCoordinator extends EventEmitter {
     // Execute operations in parallel by type
     const promises: Promise<void>[] = [];
 
-    for (const [type, ops] of groupedOps) {
+    for (const [type, ops] of Array.from(groupedOps.entries())) {
       promises.push(this.executeBatchOperationType(type, ops, batchId, results));
     }
 
@@ -647,8 +648,8 @@ export class TaskCoordinator extends EventEmitter {
       try {
         const result = await this.simulateBatchOperation(type, op);
         results.set(`${type}_${op.targets.join('_')}`, result);
-      } catch (error) {
-        results.set(`${type}_${op.targets.join('_')}_error`, error);
+      } catch (err) {
+        results.set(`${type}_${op.targets.join('_')}_error`, err);
       }
     }
   }

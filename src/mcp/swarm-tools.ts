@@ -4,6 +4,7 @@
 
 import { MCPTool, MCPContext } from '../utils/types.js';
 import { ILogger } from '../core/logger.js';
+import { getErrorMessage } from '../utils/error-handler.js';
 // Legacy import kept for compatibility
 // import { Tool } from '@modelcontextprotocol/sdk/types.js';
 // import { spawnSwarmAgent, getSwarmState } from '../cli/commands/swarm-spawn.js';
@@ -66,11 +67,11 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             terminalId: 'N/A',
             message: `Successfully spawned ${name || type} to work on: ${task}`,
           };
-        } catch (error) {
-          logger.error('Failed to spawn agent via legacy dispatch tool', error);
+        } catch (err) {
+          logger.error('Failed to spawn agent via legacy dispatch tool', err);
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
           };
         }
       }
@@ -157,9 +158,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             objectiveId,
             message: `Created swarm objective: ${input.title}`
           };
-        } catch (error) {
-          logger.error('Failed to create swarm objective via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to create swarm objective via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -190,9 +191,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             result,
             message: 'Objective execution started'
           };
-        } catch (error) {
-          logger.error('Failed to execute swarm objective via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to execute swarm objective via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -227,9 +228,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
           }
 
           return status;
-        } catch (error) {
-          logger.error('Failed to get swarm status via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get swarm status via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -274,9 +275,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             agentId,
             message: `Created ${input.type} agent`
           };
-        } catch (error) {
-          logger.error('Failed to create agent via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to create agent via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -312,9 +313,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             count: filteredAgents.length,
             filter: input.status
           };
-        } catch (error) {
-          logger.error('Failed to list agents via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to list agents via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -361,9 +362,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             resourceId,
             message: `Registered ${input.type} resource: ${input.name}`
           };
-        } catch (error) {
-          logger.error('Failed to register resource via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to register resource via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -386,9 +387,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             success: true,
             statistics: stats
           };
-        } catch (error) {
-          logger.error('Failed to get resource statistics via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get resource statistics via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -445,9 +446,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             messageId,
             message: 'Message sent successfully'
           };
-        } catch (error) {
-          logger.error('Failed to send message via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to send message via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -470,9 +471,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             success: true,
             metrics
           };
-        } catch (error) {
-          logger.error('Failed to get message metrics via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get message metrics via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -515,9 +516,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             success: true,
             metrics
           };
-        } catch (error) {
-          logger.error('Failed to get monitoring metrics via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get monitoring metrics via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -555,9 +556,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             alerts,
             count: alerts.length
           };
-        } catch (error) {
-          logger.error('Failed to get alerts via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get alerts via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -611,9 +612,9 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
             success: true,
             status
           };
-        } catch (error) {
-          logger.error('Failed to get comprehensive status via MCP', error);
-          throw error;
+        } catch (err) {
+          logger.error('Failed to get comprehensive status via MCP', err);
+          throw new Error(getErrorMessage(err));
         }
       }
     },
@@ -669,11 +670,11 @@ export function createSwarmTools(logger: ILogger): MCPTool[] {
           logger.info('Emergency stop completed via MCP', results);
 
           return results;
-        } catch (error) {
-          logger.error('Emergency stop failed via MCP', error);
+        } catch (err) {
+          logger.error('Emergency stop failed via MCP', err);
           results.success = false;
-          results.error = error instanceof Error ? error.message : 'Unknown error';
-          throw error;
+          results.error = err instanceof Error ? getErrorMessage(err) : 'Unknown err';
+          throw new Error(getErrorMessage(err));
         }
       }
     }
@@ -770,10 +771,10 @@ export async function handleDispatchAgent(args: any): Promise<any> {
       terminalId: 'N/A',
       message: `Successfully spawned ${name || type} to work on: ${task}`,
     };
-  } catch (error) {
+  } catch (err) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
     };
   }
 }

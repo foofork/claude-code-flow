@@ -3,13 +3,14 @@
  */
 
 import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { MigrationBackup, BackupFile } from './types';
 import { logger } from './logger';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import * as inquirer from 'inquirer';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export class RollbackManager {
   private projectPath: string;
   private backupDir: string;
@@ -126,8 +127,8 @@ export class RollbackManager {
         try {
           const backup = await fs.readJson(manifestPath);
           backups.push(backup);
-        } catch (error) {
-          logger.warn(`Invalid backup manifest in ${folder}: ${error.message}`);
+        } catch (err) {
+          logger.warn(`Invalid backup manifest in ${folder}: ${getErrorMessage(err)}`);
         }
       }
     }
@@ -187,7 +188,7 @@ export class RollbackManager {
       
       logger.success('Rollback completed successfully');
       
-    } catch (error) {
+    } catch (err) {
       logger.error('Rollback failed, attempting to restore pre-rollback state...');
       
       try {
@@ -198,7 +199,7 @@ export class RollbackManager {
         throw new Error('Rollback failed and unable to restore previous state');
       }
       
-      throw error;
+      throw err;
     }
   }
 
@@ -235,8 +236,8 @@ export class RollbackManager {
       if (file.permissions) {
         try {
           await fs.chmod(targetPath, parseInt(file.permissions, 8));
-        } catch (error) {
-          logger.warn(`Could not restore permissions for ${file.path}: ${error.message}`);
+        } catch (err) {
+          logger.warn(`Could not restore permissions for ${file.path}: ${getErrorMessage(err)}`);
         }
       }
     }

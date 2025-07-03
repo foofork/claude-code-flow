@@ -1,4 +1,6 @@
 // Jest setup file for Node.js environment
+import { jest } from '@jest/globals';
+
 global.console = {
   ...console,
   // Suppress console output during tests

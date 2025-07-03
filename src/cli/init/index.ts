@@ -6,6 +6,7 @@ import { createSparcEnvironment } from './sparc-environment.js';
 import { createClaudeConfig } from './claude-config.js';
 import { createBatchToolsGuide } from './batch-tools.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export interface InitOptions {
   sparc?: boolean;
   force?: boolean;
@@ -59,8 +60,8 @@ export async function initCommand(options: InitOptions = {}) {
       console.log('   7. Use Task tool for parallel agent execution');
     }
     
-  } catch (error) {
-    printError(`Failed to initialize project: ${error.message}`);
-    throw error;
+  } catch (err) {
+    printError(`Failed to initialize project: ${getErrorMessage(err)}`);
+    throw new Error(getErrorMessage(err));
   }
 }

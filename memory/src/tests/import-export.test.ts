@@ -2,7 +2,7 @@
  * SPARC Memory Bank - Import/Export Tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+// Jest imports are globally available, no need to import them
 import { ImportExportManager } from '../io/import-export';
 import { MemoryItem } from '../types';
 

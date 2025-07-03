@@ -5,8 +5,10 @@
  */
 
 // Import and run the simple CLI which doesn't have external dependencies
-import "./simple-cli.ts";
+import "./simple-cli.js";
 // Spinner import removed - not available in current cliffy version
+import { Command } from '@cliffy/command';
+import { colors } from '@cliffy/ansi/colors';
 import { logger } from '../core/logger.js';
 import { configManager } from '../core/config.js';
 import { startCommand } from './commands/start.js';
@@ -21,6 +23,7 @@ import { workflowCommand } from './commands/workflow.js';
 import { helpCommand } from './commands/help.js';
 import { mcpCommand } from './commands/mcp.js';
 import { formatError, displayBanner, displayVersion } from './formatter.js';
+import { getErrorMessage } from '../utils/error-handler.js';
 import { startREPL } from './repl.js';
 import { CompletionGenerator } from './completion.js';
 
@@ -106,7 +109,7 @@ cli
 
 // Global error handler
 async function handleError(error: unknown, options?: any): Promise<void> {
-  const formatted = formatError(error);
+  const formatted = getErrorMessage(error);
   
   if (options?.json) {
     console.error(JSON.stringify({
@@ -165,8 +168,8 @@ async function setupLogging(options: any): Promise<void> {
     if (options.profile) {
       await configManager.applyProfile(options.profile);
     }
-  } catch (error) {
-    logger.warn('Failed to load configuration:', (error as Error).message);
+  } catch (err) {
+    logger.warn('Failed to load configuration:', getErrorMessage(err));
     configManager.loadDefault();
   }
 }
@@ -205,7 +208,7 @@ if (import.meta.main) {
     }
     
     await cli.parse(args);
-  } catch (error) {
-    await handleError(error, globalOptions);
+  } catch (err) {
+    await handleError(err, globalOptions);
   }
 }

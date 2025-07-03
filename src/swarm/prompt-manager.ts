@@ -1,6 +1,7 @@
-import * as path from 'path';
-import { EventEmitter } from 'events';
-import { copyPrompts, copyPromptsEnhanced, CopyOptions, CopyResult } from './prompt-copier-enhanced';
+import * as path from 'node:path';
+import { EventEmitter } from 'node:events';
+import { copyPrompts } from './prompt-copier';
+import { copyPromptsEnhanced, CopyOptions, CopyResult } from './prompt-copier-enhanced';
 import { 
   PromptConfigManager, 
   PromptPathResolver, 
@@ -8,8 +9,9 @@ import {
   formatDuration,
   formatFileSize
 } from './prompt-utils';
-import { logger } from '../logger';
+import { logger } from '../core/logger.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface PromptManagerOptions {
   configPath?: string;
   basePath?: string;
@@ -122,9 +124,9 @@ export class PromptManager extends EventEmitter {
 
       this.emit('copyComplete', result);
       return result;
-    } catch (error) {
-      this.emit('copyError', error);
-      throw error;
+    } catch (err) {
+      this.emit('copyError', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -151,18 +153,18 @@ export class PromptManager extends EventEmitter {
         results.push(result);
         
         this.emit('sourceComplete', { source, result });
-      } catch (error) {
-        logger.error(`Failed to copy from ${source}:`, error);
-        this.emit('sourceError', { source, error });
+      } catch (err) {
+        logger.error(`Failed to copy from ${source}:`, err);
+        this.emit('sourceError', { source, err });
         
-        // Add error result
+        // Add err result
         results.push({
           success: false,
           totalFiles: 0,
           copiedFiles: 0,
           failedFiles: 0,
           skippedFiles: 0,
-          errors: [{ file: source, error: error.message, phase: 'read' }],
+          errors: [{ file: source, err: getErrorMessage(err), phase: 'read' }],
           duration: 0
         });
       }
@@ -225,8 +227,8 @@ export class PromptManager extends EventEmitter {
           await this.validateDirectory(fullPath, issues);
         }
       }
-    } catch (error) {
-      logger.error(`Failed to validate directory ${dirPath}:`, error);
+    } catch (err) {
+      logger.error(`Failed to validate directory ${dirPath}:`, err);
     }
   }
 

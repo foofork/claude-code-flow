@@ -13,6 +13,7 @@ import {
   LoadBalancingStrategy 
 } from '../swarm/types.js';
 import { WorkStealingCoordinator } from './work-stealing.js';
+import { getErrorMessage } from '../utils/error-handler.js';
 
 export interface LoadBalancerConfig {
   strategy: LoadBalancingStrategy;
@@ -119,7 +120,7 @@ export class LoadBalancer extends EventEmitter {
     this.eventBus = eventBus;
 
     this.config = {
-      strategy: 'hybrid',
+      strategy: 'distributed' as LoadBalancingStrategy,
       enableWorkStealing: true,
       stealThreshold: 3,
       maxStealBatch: 5,
@@ -151,24 +152,29 @@ export class LoadBalancer extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    this.eventBus.on('agent:load-update', (data) => {
-      this.updateAgentLoad(data.agentId, data.load);
+    this.eventBus.on('agent:load-update', (data: unknown) => {
+      const typedData = data as { agentId: AgentId; load: Partial<AgentLoad> };
+      this.updateAgentLoad(typedData.agentId.id, typedData.load);
     });
 
-    this.eventBus.on('task:queued', (data) => {
-      this.updateTaskQueue(data.agentId, data.task, 'add');
+    this.eventBus.on('task:queued', (data: unknown) => {
+      const typedData = data as { agentId: AgentId; task: TaskDefinition };
+      this.updateTaskQueue(typedData.agentId.id, typedData.task, 'add');
     });
 
-    this.eventBus.on('task:started', (data) => {
-      this.updateTaskQueue(data.agentId, data.task, 'remove');
+    this.eventBus.on('task:started', (data: unknown) => {
+      const typedData = data as { agentId: AgentId; task: TaskDefinition };
+      this.updateTaskQueue(typedData.agentId.id, typedData.task, 'remove');
     });
 
-    this.eventBus.on('workstealing:request', (data) => {
-      this.executeWorkStealing(data.sourceAgent, data.targetAgent, data.taskCount);
+    this.eventBus.on('workstealing:request', (data: unknown) => {
+      const typedData = data as { sourceAgent: AgentId; targetAgent: AgentId; taskCount: number };
+      this.executeWorkStealing(typedData.sourceAgent.id, typedData.targetAgent.id, typedData.taskCount);
     });
 
-    this.eventBus.on('agent:performance-update', (data) => {
-      this.updatePerformanceBaseline(data.agentId, data.metrics);
+    this.eventBus.on('agent:performance-update', (data: unknown) => {
+      const typedData = data as { agentId: AgentId; metrics: any };
+      this.updatePerformanceBaseline(typedData.agentId.id, typedData.metrics);
     });
   }
 
@@ -249,7 +255,7 @@ export class LoadBalancer extends EventEmitter {
       return decision;
 
     } catch (error) {
-      this.logger.error('Agent selection failed', { taskId: task.id.id, error });
+      this.logger.error('Agent selection failed', { taskId: task.id.id, error: getErrorMessage(error) });
       throw error;
     }
   }
@@ -317,34 +323,30 @@ export class LoadBalancer extends EventEmitter {
       const scoreComponents: string[] = [];
 
       switch (this.config.strategy) {
-        case 'load-based':
+        case 'work-stealing':
+        case 'work-sharing':
           score = this.calculateLoadScore(agent, load);
           scoreComponents.push(`load:${score.toFixed(2)}`);
           break;
 
-        case 'performance-based':
+        case 'predictive':
           score = this.calculatePerformanceScore(agent, load);
           scoreComponents.push(`perf:${score.toFixed(2)}`);
           break;
 
-        case 'capability-based':
+        case 'centralized':
           score = this.calculateCapabilityScore(agent, task);
           scoreComponents.push(`cap:${score.toFixed(2)}`);
           break;
 
-        case 'affinity-based':
-          score = this.calculateAffinityScore(agent, task);
-          scoreComponents.push(`affinity:${score.toFixed(2)}`);
-          break;
-
-        case 'cost-based':
-          score = this.calculateCostScore(agent, task);
-          scoreComponents.push(`cost:${score.toFixed(2)}`);
-          break;
-
-        case 'hybrid':
+        case 'distributed':
           score = this.calculateHybridScore(agent, task, load);
           scoreComponents.push(`hybrid:${score.toFixed(2)}`);
+          break;
+
+        case 'reactive':
+          score = this.calculateCostScore(agent, task);
+          scoreComponents.push(`cost:${score.toFixed(2)}`);
           break;
 
         default:
@@ -425,16 +427,20 @@ export class LoadBalancer extends EventEmitter {
 
     // Check language compatibility
     if (task.requirements.capabilities.includes('coding')) {
-      const hasLanguage = agent.capabilities.languages.some(lang =>
-        task.context.language === lang
-      );
-      score += hasLanguage ? 1 : 0;
-      totalChecks++;
+      const taskLanguage = (task.context as any).language;
+      if (taskLanguage) {
+        const hasLanguage = agent.capabilities.languages.some(lang =>
+          taskLanguage === lang
+        );
+        score += hasLanguage ? 1 : 0;
+        totalChecks++;
+      }
     }
 
     // Check framework compatibility
-    if (task.context.framework) {
-      const hasFramework = agent.capabilities.frameworks.includes(task.context.framework);
+    const taskFramework = (task.context as any).framework;
+    if (taskFramework) {
+      const hasFramework = (agent.capabilities as any).frameworks?.includes(taskFramework) || false;
       score += hasFramework ? 1 : 0;
       totalChecks++;
     }
@@ -466,8 +472,8 @@ export class LoadBalancer extends EventEmitter {
   private calculateCostScore(agent: AgentState, task: TaskDefinition): number {
     // Simple cost model - could be enhanced
     const baseCost = 1.0;
-    const performanceFactor = agent.capabilities.speed;
-    const reliabilityFactor = agent.capabilities.reliability;
+    const performanceFactor = (agent.capabilities as any).speed || 1.0;
+    const reliabilityFactor = (agent.capabilities as any).reliability || 1.0;
 
     const cost = baseCost / (performanceFactor * reliabilityFactor);
     return Math.max(0, 1 - (cost / 2)); // Normalize and invert
@@ -564,7 +570,7 @@ export class LoadBalancer extends EventEmitter {
         operationId,
         sourceAgent: sourceAgentId,
         targetAgent: targetAgentId,
-        error
+        error: getErrorMessage(error)
       });
 
       this.emit('workstealing:failed', { operation, error });
@@ -640,7 +646,7 @@ export class LoadBalancer extends EventEmitter {
         if (target) {
           const [targetId] = target;
           const tasksToSteal = Math.min(
-            Math.floor((overloadedLoad.queueDepth - targetId.length) / 2),
+            Math.floor((overloadedLoad.queueDepth - 2) / 2),
             this.config.maxStealBatch
           );
 
@@ -651,7 +657,7 @@ export class LoadBalancer extends EventEmitter {
       }
 
     } catch (error) {
-      this.logger.error('Rebalancing failed', error);
+      this.logger.error('Rebalancing failed', getErrorMessage(error));
     }
   }
 

@@ -3,13 +3,14 @@
  */
 
 import Database from 'better-sqlite3';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { IMemoryBackend } from './base.js';
 import { MemoryEntry, MemoryQuery } from '../../utils/types.js';
 import { ILogger } from '../../core/logger.js';
 import { MemoryBackendError } from '../../utils/errors.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 /**
  * SQLite-based memory backend
  */
@@ -45,8 +46,8 @@ export class SQLiteBackend implements IMemoryBackend {
       this.createIndexes();
 
       this.logger.info('SQLite backend initialized');
-    } catch (error) {
-      throw new MemoryBackendError('Failed to initialize SQLite backend', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to initialize SQLite backend', { error: getErrorMessage(err) });
     }
   }
 
@@ -88,8 +89,8 @@ export class SQLiteBackend implements IMemoryBackend {
     try {
       const stmt = this.db.prepare(sql);
       stmt.run(...params);
-    } catch (error) {
-      throw new MemoryBackendError('Failed to store entry', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to store entry', { err });
     }
   }
 
@@ -109,8 +110,8 @@ export class SQLiteBackend implements IMemoryBackend {
       }
 
       return this.rowToEntry(row as Record<string, unknown>);
-    } catch (error) {
-      throw new MemoryBackendError('Failed to retrieve entry', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to retrieve entry', { err });
     }
   }
 
@@ -129,8 +130,8 @@ export class SQLiteBackend implements IMemoryBackend {
     try {
       const stmt = this.db.prepare(sql);
       stmt.run(id);
-    } catch (error) {
-      throw new MemoryBackendError('Failed to delete entry', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to delete entry', { err });
     }
   }
 
@@ -203,8 +204,8 @@ export class SQLiteBackend implements IMemoryBackend {
       const stmt = this.db.prepare(sql);
       const rows = stmt.all(...params);
       return rows.map((row: any) => this.rowToEntry(row as Record<string, unknown>));
-    } catch (error) {
-      throw new MemoryBackendError('Failed to query entries', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to query entries', { err });
     }
   }
 
@@ -219,8 +220,8 @@ export class SQLiteBackend implements IMemoryBackend {
       const stmt = this.db.prepare(sql);
       const rows = stmt.all();
       return rows.map((row: any) => this.rowToEntry(row as Record<string, unknown>));
-    } catch (error) {
-      throw new MemoryBackendError('Failed to get all entries', { error });
+    } catch (err) {
+      throw new MemoryBackendError('Failed to get all entries', { err });
     }
   }
 
@@ -254,10 +255,10 @@ export class SQLiteBackend implements IMemoryBackend {
           dbSizeBytes: dbSize,
         },
       };
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }

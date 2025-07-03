@@ -2,10 +2,11 @@
  * Node.js-compatible Configuration management for Claude-Flow
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface Config {
   orchestrator: {
     maxConcurrentAgents: number;
@@ -130,7 +131,7 @@ export class ConfigManager {
     try {
       await this.load(configPath);
       console.log(`✅ Configuration loaded from: ${configPath}`);
-    } catch (error) {
+    } catch (err) {
       // Create default config file if it doesn't exist
       await this.createDefaultConfig(configPath);
       console.log(`✅ Default configuration created: ${configPath}`);
@@ -173,11 +174,11 @@ export class ConfigManager {
       this.validate(this.config);
       
       return this.config;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new ConfigError(`Configuration file not found: ${this.configPath}`);
       }
-      throw new ConfigError(`Failed to load configuration: ${(error as Error).message}`);
+      throw new ConfigError(`Failed to load configuration: ${getErrorMessage(err)}`);
     }
   }
 
@@ -367,6 +368,110 @@ export class ConfigManager {
     }
     
     return result;
+  }
+
+  /**
+   * Gets available configuration templates
+   */
+  async getAvailableTemplates(): Promise<string[]> {
+    const templatesDir = path.join(this.userConfigDir, 'templates');
+    try {
+      await fs.mkdir(templatesDir, { recursive: true });
+      const files = await fs.readdir(templatesDir);
+      return files.filter(f => f.endsWith('.json')).map(f => f.replace('.json', ''));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Creates a configuration template
+   */
+  async createTemplate(name: string, config?: Partial<Config>): Promise<void> {
+    const templatesDir = path.join(this.userConfigDir, 'templates');
+    await fs.mkdir(templatesDir, { recursive: true });
+    const templatePath = path.join(templatesDir, `${name}.json`);
+    const content = JSON.stringify(config || this.config, null, 2);
+    await fs.writeFile(templatePath, content, 'utf8');
+  }
+
+  /**
+   * Gets available format parsers
+   */
+  getFormatParsers(): string[] {
+    return ['json', 'yaml', 'toml'];
+  }
+
+  /**
+   * Validates a configuration file
+   */
+  async validateFile(filePath: string): Promise<{ valid: boolean; errors?: string[] }> {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      const fileConfig = JSON.parse(content) as Config;
+      this.validate(fileConfig);
+      return { valid: true };
+    } catch (err) {
+      return { 
+        valid: false, 
+        errors: [getErrorMessage(err)] 
+      };
+    }
+  }
+
+  /**
+   * Gets configuration path history
+   */
+  async getPathHistory(): Promise<string[]> {
+    const historyPath = path.join(this.userConfigDir, 'path-history.json');
+    try {
+      const content = await fs.readFile(historyPath, 'utf8');
+      return JSON.parse(content) as string[];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Gets configuration change history
+   */
+  async getChangeHistory(): Promise<Array<{ timestamp: Date; path: string; oldValue: any; newValue: any }>> {
+    const historyPath = path.join(this.userConfigDir, 'change-history.json');
+    try {
+      const content = await fs.readFile(historyPath, 'utf8');
+      return JSON.parse(content) as Array<{ timestamp: Date; path: string; oldValue: any; newValue: any }>;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Creates a backup of the current configuration
+   */
+  async backup(name?: string): Promise<string> {
+    const backupsDir = path.join(this.userConfigDir, 'backups');
+    await fs.mkdir(backupsDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupName = name || `backup-${timestamp}`;
+    const backupPath = path.join(backupsDir, `${backupName}.json`);
+    const content = JSON.stringify(this.config, null, 2);
+    await fs.writeFile(backupPath, content, 'utf8');
+    return backupPath;
+  }
+
+  /**
+   * Restores configuration from a backup
+   */
+  async restore(backupName: string): Promise<void> {
+    const backupsDir = path.join(this.userConfigDir, 'backups');
+    const backupPath = path.join(backupsDir, `${backupName}.json`);
+    const content = await fs.readFile(backupPath, 'utf8');
+    const backupConfig = JSON.parse(content) as Config;
+    this.validate(backupConfig);
+    this.config = backupConfig;
+    if (this.configPath) {
+      await this.save();
+    }
   }
 }
 

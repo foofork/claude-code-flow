@@ -8,6 +8,7 @@ import { Logger } from '../core/logger.js';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ClaudeFlowExecutorConfig {
   logger?: Logger;
   claudeFlowPath?: string;
@@ -79,9 +80,9 @@ export class ClaudeFlowExecutor {
         },
         error: result.error
       };
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Failed to execute Claude Flow SPARC command', { 
-        error: error.message,
+        error: getErrorMessage(err),
         taskId: task.id.id 
       });
       
@@ -93,7 +94,7 @@ export class ClaudeFlowExecutor {
           quality: 0,
           completeness: 0
         },
-        error: error.message
+        error: getErrorMessage(err)
       };
     }
   }

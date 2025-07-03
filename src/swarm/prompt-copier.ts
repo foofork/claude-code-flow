@@ -1,10 +1,11 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
-import { createHash } from 'crypto';
+import * as path from 'node:path';
+import { createHash } from 'node:crypto';
 import { Worker } from 'worker_threads';
-import { EventEmitter } from 'events';
-import { logger } from '../logger';
+import { EventEmitter } from 'node:events';
+import { logger } from '../core/logger.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface CopyOptions {
   source: string;
   destination: string;
@@ -56,12 +57,12 @@ export interface FileInfo {
 }
 
 export class PromptCopier extends EventEmitter {
-  private options: Required<CopyOptions>;
-  private fileQueue: FileInfo[] = [];
-  private copiedFiles: Set<string> = new Set();
-  private errors: CopyError[] = [];
-  private backupMap: Map<string, string> = new Map();
-  private rollbackStack: Array<() => Promise<void>> = [];
+  protected options: Required<CopyOptions>;
+  protected fileQueue: FileInfo[] = [];
+  protected copiedFiles: Set<string> = new Set();
+  protected errors: CopyError[] = [];
+  protected backupMap: Map<string, string> = new Map();
+  protected rollbackStack: Array<() => Promise<void>> = [];
 
   constructor(options: CopyOptions) {
     super();
@@ -136,14 +137,14 @@ export class PromptCopier extends EventEmitter {
       logger.info(`Copy completed in ${duration}ms`, result);
       return result;
 
-    } catch (error) {
-      logger.error('Copy operation failed', error);
+    } catch (err) {
+      logger.error('Copy operation failed', err);
       
       if (!this.options.dryRun) {
         await this.rollback();
       }
       
-      throw error;
+      throw err;
     }
   }
 
@@ -237,17 +238,17 @@ export class PromptCopier extends EventEmitter {
         await this.copyFile(file);
         completed++;
         this.reportProgress(completed);
-      } catch (error) {
+      } catch (err) {
         this.errors.push({
           file: file.path,
-          error: error.message,
+          error: getErrorMessage(err),
           phase: 'write'
         });
       }
     }
   }
 
-  private async copyFilesParallel(): Promise<void> {
+  protected async copyFilesParallel(): Promise<void> {
     const workerCount = Math.min(this.options.maxWorkers, this.fileQueue.length);
     const chunkSize = Math.ceil(this.fileQueue.length / workerCount);
     const workers: Promise<void>[] = [];
@@ -271,10 +272,10 @@ export class PromptCopier extends EventEmitter {
         await this.copyFile(file);
         this.copiedFiles.add(file.path);
         this.reportProgress(this.copiedFiles.size);
-      } catch (error) {
+      } catch (err) {
         this.errors.push({
           file: file.path,
-          error: error.message,
+          error: getErrorMessage(err),
           phase: 'write'
         });
       }
@@ -364,7 +365,7 @@ export class PromptCopier extends EventEmitter {
     await fs.writeFile(destPath, mergedContent, 'utf-8');
   }
 
-  private async verifyFiles(): Promise<void> {
+  protected async verifyFiles(): Promise<void> {
     logger.info('Verifying copied files...');
     
     for (const file of this.fileQueue) {
@@ -394,22 +395,22 @@ export class PromptCopier extends EventEmitter {
           }
         }
         
-      } catch (error) {
+      } catch (err) {
         this.errors.push({
           file: file.path,
-          error: error.message,
+          error: getErrorMessage(err),
           phase: 'verify'
         });
       }
     }
   }
 
-  private async calculateFileHash(filePath: string): Promise<string> {
+  protected async calculateFileHash(filePath: string): Promise<string> {
     const content = await fs.readFile(filePath);
     return createHash('sha256').update(content).digest('hex');
   }
 
-  private async fileExists(filePath: string): Promise<boolean> {
+  protected async fileExists(filePath: string): Promise<boolean> {
     try {
       await fs.access(filePath);
       return true;
@@ -446,8 +447,8 @@ export class PromptCopier extends EventEmitter {
     for (let i = this.rollbackStack.length - 1; i >= 0; i--) {
       try {
         await this.rollbackStack[i]();
-      } catch (error) {
-        logger.error(`Rollback operation ${i} failed:`, error);
+      } catch (err) {
+        logger.error(`Rollback operation ${i} failed:`, err);
       }
     }
     
@@ -463,7 +464,7 @@ export class PromptCopier extends EventEmitter {
     }
   }
 
-  private reportProgress(completed: number): void {
+  protected reportProgress(completed: number): void {
     const progress: CopyProgress = {
       total: this.fileQueue.length,
       completed,
@@ -484,8 +485,8 @@ export class PromptCopier extends EventEmitter {
       try {
         await fs.copyFile(backup, original);
         logger.info(`Restored ${original} from ${backup}`);
-      } catch (error) {
-        logger.error(`Failed to restore ${original}:`, error);
+      } catch (err) {
+        logger.error(`Failed to restore ${original}:`, err);
       }
     }
   }

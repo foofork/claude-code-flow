@@ -4,14 +4,15 @@
  * semantic clustering, caching, and progressive refinement
  */
 
-import { BaseStrategy, DecompositionResult, StrategyMetrics } from './base.js';
+import { BaseStrategy, DecompositionResult, StrategyMetrics, AgentAllocation } from './base.js';
 import { Logger } from '../../core/logger.js';
 import { generateId } from '../../utils/helpers.js';
 import {
   SwarmObjective, TaskDefinition, TaskId, TaskType, TaskPriority,
-  SwarmConfig, SWARM_CONSTANTS
+  SwarmConfig, SWARM_CONSTANTS, AgentState, AgentCapabilities
 } from '../types.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 // Research-specific interfaces
 interface ResearchQuery {
   id: string;
@@ -83,6 +84,19 @@ interface RateLimiter {
   backoffMultiplier: number;
 }
 
+interface ExtendedStrategyMetrics extends StrategyMetrics {
+  queriesExecuted: number;
+  resultsCollected: number;
+  cacheHits: number;
+  cacheMisses: number;
+  averageResponseTime: number;
+  credibilityScores: number[];
+  clusteringAccuracy: number;
+  parallelEfficiency: number;
+  connectionPoolUtilization?: number;
+  cacheSize?: number;
+}
+
 export class ResearchStrategy extends BaseStrategy {
   private logger: Logger;
   private researchCache: Map<string, CacheEntry> = new Map();
@@ -93,20 +107,24 @@ export class ResearchStrategy extends BaseStrategy {
   private researchResults: Map<string, ResearchResult> = new Map();
   private researchClusters: Map<string, ResearchCluster> = new Map();
 
-  // Research-specific metrics extending base metrics
-  private researchMetrics = {
-    queriesExecuted: 0,
-    resultsCollected: 0,
-    cacheHits: 0,
-    cacheMisses: 0,
-    averageResponseTime: 0,
-    credibilityScores: [] as number[],
-    clusteringAccuracy: 0,
-    parallelEfficiency: 0
-  };
+  // Override base metrics with extended metrics
+  protected override metrics: ExtendedStrategyMetrics = {} as ExtendedStrategyMetrics;
 
-  constructor(config: Partial<SwarmConfig> = {}) {
+  constructor(config: SwarmConfig = {} as SwarmConfig) {
     super(config);
+    
+    // Initialize extended metrics
+    this.metrics = {
+      ...this.metrics,
+      queriesExecuted: 0,
+      resultsCollected: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      averageResponseTime: 0,
+      credibilityScores: [],
+      clusteringAccuracy: 0,
+      parallelEfficiency: 0
+    };
     
     this.logger = new Logger(
       { level: 'info', format: 'text', destination: 'console' },
@@ -128,12 +146,7 @@ export class ResearchStrategy extends BaseStrategy {
     });
   }
 
-  async decomposeObjective(objective: SwarmObjective): Promise<{
-    tasks: TaskDefinition[];
-    dependencies: Map<string, string[]>;
-    estimatedDuration: number;
-    resourceRequirements: any;
-  }> {
+  override async decomposeObjective(objective: SwarmObjective): Promise<DecompositionResult> {
     this.logger.info('Decomposing research objective', {
       objectiveId: objective.id,
       description: objective.description
@@ -148,7 +161,7 @@ export class ResearchStrategy extends BaseStrategy {
     // Create research query planning task
     const queryPlanningTask = this.createResearchTask(
       'query-planning',
-      'research-planning',
+      'research' as TaskType,
       'Research Query Planning',
       `Analyze the research objective and create optimized search queries:
 
@@ -174,7 +187,7 @@ Focus on creating queries that will yield high-quality, credible results.`,
     // Create parallel web search tasks
     const webSearchTask = this.createResearchTask(
       'web-search',
-      'web-search',
+      'research' as TaskType,
       'Parallel Web Search Execution',
       `Execute parallel web searches based on the research plan:
 
@@ -202,7 +215,7 @@ Collect diverse, high-quality sources relevant to the research objective.`,
     // Create data extraction and processing task
     const dataExtractionTask = this.createResearchTask(
       'data-extraction',
-      'data-processing',
+      'analysis' as TaskType,
       'Parallel Data Extraction',
       `Extract and process data from collected sources:
 
@@ -230,7 +243,7 @@ Use parallel processing for efficient data extraction.`,
     // Create semantic clustering task
     const clusteringTask = this.createResearchTask(
       'semantic-clustering',
-      'analysis',
+      'analysis' as TaskType,
       'Semantic Clustering and Analysis',
       `Perform semantic clustering of research findings:
 
@@ -258,7 +271,7 @@ Provide a structured analysis of the research findings.`,
     // Create synthesis and reporting task
     const synthesisTask = this.createResearchTask(
       'synthesis-reporting',
-      'documentation',
+      'documentation' as TaskType,
       'Research Synthesis and Reporting',
       `Synthesize research findings into comprehensive report:
 
@@ -299,12 +312,9 @@ Ensure the report is well-structured and actionable.`,
       tasks,
       dependencies,
       estimatedDuration: totalDuration,
-      resourceRequirements: {
-        memory: SWARM_CONSTANTS.DEFAULT_MEMORY_LIMIT * 1.5,
-        cpu: SWARM_CONSTANTS.DEFAULT_CPU_LIMIT * 1.2,
-        network: 'high',
-        storage: 'medium'
-      }
+      recommendedStrategy: 'research',
+      complexity: this.estimateComplexity(objective.description),
+      batchGroups: []
     };
   }
 
@@ -315,9 +325,9 @@ Ensure the report is well-structured and actionable.`,
     try {
       // Apply research-specific optimizations based on task type
       switch (task.type) {
-        case 'web-search':
+        case 'research':
           return await this.executeOptimizedWebSearch(task, agent);
-        case 'data-processing':
+        case 'analysis':
           return await this.executeOptimizedDataExtraction(task, agent);
         case 'analysis':
           return await this.executeOptimizedClustering(task, agent);
@@ -326,7 +336,7 @@ Ensure the report is well-structured and actionable.`,
       }
     } finally {
       const duration = Date.now() - startTime;
-      this.updateMetrics(task.type, duration);
+      this.updateResearchMetrics(task.type, duration);
     }
   }
 
@@ -522,9 +532,9 @@ Ensure the report is well-structured and actionable.`,
         const results = await this.simulateWebSearch(query);
         this.updateRateLimit(domain);
         return results;
-      } catch (error) {
+      } catch (err) {
         attempts++;
-        if (attempts >= maxAttempts) throw error;
+        if (attempts >= maxAttempts) throw new Error(getErrorMessage(err));
         await this.exponentialBackoff(attempts);
       }
     }
@@ -558,7 +568,7 @@ Ensure the report is well-structured and actionable.`,
 
   private async rankResultsByCredibility(results: ResearchResult[]): Promise<ResearchResult[]> {
     // Sort by combined credibility and relevance score
-    return results.sort((a, b) => {
+    return results.sort((a: ResearchResult, b: ResearchResult) => {
       const scoreA = (a.credibilityScore * 0.6) + (a.relevanceScore * 0.4);
       const scoreB = (b.credibilityScore * 0.6) + (b.relevanceScore * 0.4);
       return scoreB - scoreA;
@@ -697,12 +707,12 @@ Ensure the report is well-structured and actionable.`,
   }
 
   private getFromCache(key: string): any | null {
-    const entry = this.cache.get(key);
+    const entry = this.researchCache.get(key);
     if (!entry) return null;
 
     const now = new Date();
     if (now.getTime() - entry.timestamp.getTime() > entry.ttl) {
-      this.cache.delete(key);
+      this.researchCache.delete(key);
       return null;
     }
 
@@ -712,7 +722,7 @@ Ensure the report is well-structured and actionable.`,
   }
 
   private setCache(key: string, data: any, ttl: number): void {
-    this.cache.set(key, {
+    this.researchCache.set(key, {
       key,
       data,
       timestamp: new Date(),
@@ -722,19 +732,19 @@ Ensure the report is well-structured and actionable.`,
     });
 
     // Cleanup old entries if cache is too large
-    if (this.cache.size > 1000) {
+    if (this.researchCache.size > 1000) {
       this.cleanupCache();
     }
   }
 
   private cleanupCache(): void {
-    const entries = Array.from(this.cache.entries());
+    const entries = Array.from(this.researchCache.entries());
     entries.sort((a, b) => a[1].lastAccessed.getTime() - b[1].lastAccessed.getTime());
     
     // Remove oldest 20% of entries
     const toRemove = Math.floor(entries.length * 0.2);
     for (let i = 0; i < toRemove; i++) {
-      this.cache.delete(entries[i][0]);
+      this.researchCache.delete(entries[i][0]);
     }
   }
 
@@ -788,23 +798,109 @@ Ensure the report is well-structured and actionable.`,
     };
   }
 
-  private updateMetrics(taskType: string, duration: number): void {
+  private updateResearchMetrics(taskType: string, duration: number): void {
     this.metrics.queriesExecuted++;
     this.metrics.averageResponseTime = 
       (this.metrics.averageResponseTime + duration) / 2;
   }
 
   // Public API for metrics
-  getMetrics() {
+  override getMetrics(): ExtendedStrategyMetrics {
     return {
       ...this.metrics,
       cacheHitRate: this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses),
-      averageCredibilityScore: this.metrics.credibilityScores.length > 0 
-        ? this.metrics.credibilityScores.reduce((a, b) => a + b, 0) / this.metrics.credibilityScores.length 
-        : 0,
+      credibilityScores: this.metrics.credibilityScores,
       connectionPoolUtilization: this.connectionPool.active / this.connectionPool.max,
-      cacheSize: this.cache.size
+      cacheSize: this.researchCache.size
     };
+  }
+
+  // Helper method to convert AgentCapabilities to string array
+  private getAgentCapabilityStrings(capabilities: AgentCapabilities): string[] {
+    const capStrings: string[] = [];
+    if (capabilities.codeGeneration) capStrings.push('coding');
+    if (capabilities.codeReview) capStrings.push('review');
+    if (capabilities.testing) capStrings.push('testing');
+    if (capabilities.documentation) capStrings.push('documentation');
+    if (capabilities.research) capStrings.push('research');
+    if (capabilities.analysis) capStrings.push('analysis');
+    if (capabilities.webSearch) capStrings.push('web-search');
+    if (capabilities.apiIntegration) capStrings.push('api-integration');
+    if (capabilities.fileSystem) capStrings.push('file-system');
+    if (capabilities.terminalAccess) capStrings.push('terminal');
+    return capStrings;
+  }
+
+  // Implement abstract methods from BaseStrategy
+  async selectAgentForTask(task: TaskDefinition, availableAgents: AgentState[]): Promise<string | null> {
+    // Select agent based on task type and agent capabilities
+    const requiredCapabilities = task.requirements.capabilities;
+    
+    for (const agent of availableAgents) {
+      if (agent.status === 'idle') {
+        // Check if agent has all required capabilities
+        const hasAllCapabilities = requiredCapabilities.every(cap => {
+          // Map capability strings to boolean properties
+          const capabilityMap: Record<string, boolean> = {
+            'research': agent.capabilities.research,
+            'analysis': agent.capabilities.analysis,
+            'web-search': agent.capabilities.webSearch,
+            'documentation': agent.capabilities.documentation
+          };
+          return capabilityMap[cap] === true;
+        });
+        
+        if (hasAllCapabilities) {
+          return agent.id.id;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  async optimizeTaskSchedule(tasks: TaskDefinition[], agents: AgentState[]): Promise<AgentAllocation[]> {
+    const allocations: AgentAllocation[] = [];
+    const agentWorkloads = new Map<string, number>();
+    
+    // Initialize agent workloads
+    agents.forEach(agent => agentWorkloads.set(agent.id.id, 0));
+    
+    // Sort tasks by priority
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const priorityOrder: Record<TaskPriority, number> = { 
+        critical: 5,
+        high: 4, 
+        normal: 3, 
+        low: 2, 
+        background: 1 
+      };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+    
+    // Allocate tasks to agents
+    for (const task of sortedTasks) {
+      const agentId = await this.selectAgentForTask(task, agents);
+      if (agentId) {
+        let allocation = allocations.find(a => a.agentId === agentId);
+        if (!allocation) {
+          const agent = agents.find(a => a.id.id === agentId)!;
+          allocation = {
+            agentId,
+            tasks: [],
+            estimatedWorkload: 0,
+            capabilities: this.getAgentCapabilityStrings(agent.capabilities)
+          };
+          allocations.push(allocation);
+        }
+        if (allocation) {
+          allocation.tasks.push(task.id.id);
+          allocation.estimatedWorkload += task.constraints.timeoutAfter || 0;
+        }
+      }
+    }
+    
+    return allocations;
   }
 
   // Progressive refinement methods

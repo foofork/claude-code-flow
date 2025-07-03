@@ -7,6 +7,7 @@ import { colors } from '@cliffy/ansi/colors';
 import { Task } from '../../utils/types.js';
 import { generateId } from '../../utils/helpers.js';
 
+import { getErrorMessage } from '../../utils/error-handler.js';
 export const taskCommand = new Command()
   .description('Manage tasks')
   .action(() => {
@@ -72,8 +73,8 @@ export const taskCommand = new Command()
         console.log(`- Name: ${workflow.name || 'Unnamed'}`);
         console.log(`- Tasks: ${workflow.tasks?.length || 0}`);
         console.log(colors.yellow('\nTo execute this workflow, ensure Claude-Flow is running'));
-      } catch (error) {
-        console.error(colors.red('Failed to load workflow:'), (error as Error).message);
+      } catch (err) {
+        console.error(colors.red('Failed to load workflow:'), getErrorMessage(err));
       }
     }),
   );

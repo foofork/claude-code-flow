@@ -12,6 +12,7 @@ import { NativeAdapter } from './adapters/native.js';
 import { TerminalPool } from './pool.js';
 import { TerminalSession } from './session.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 export interface ITerminalManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;
@@ -64,9 +65,9 @@ export class TerminalManager implements ITerminalManager {
 
       this.initialized = true;
       this.logger.info('Terminal manager initialized');
-    } catch (error) {
-      this.logger.error('Failed to initialize terminal manager', error);
-      throw new TerminalError('Terminal manager initialization failed', { error });
+    } catch (err) {
+      this.logger.error('Failed to initialize terminal manager', err);
+      throw new TerminalError('Terminal manager initialization failed', { err });
     }
   }
 
@@ -92,9 +93,9 @@ export class TerminalManager implements ITerminalManager {
 
       this.initialized = false;
       this.logger.info('Terminal manager shutdown complete');
-    } catch (error) {
-      this.logger.error('Error during terminal manager shutdown', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Error during terminal manager shutdown', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -129,9 +130,9 @@ export class TerminalManager implements ITerminalManager {
       });
 
       return session.id;
-    } catch (error) {
-      this.logger.error('Failed to spawn terminal', error);
-      throw new TerminalSpawnError('Failed to spawn terminal', { error });
+    } catch (err) {
+      this.logger.error('Failed to spawn terminal', err);
+      throw new TerminalSpawnError('Failed to spawn terminal', { err });
     }
   }
 
@@ -154,9 +155,9 @@ export class TerminalManager implements ITerminalManager {
       this.sessions.delete(terminalId);
 
       this.logger.info('Terminal terminated', { terminalId });
-    } catch (error) {
-      this.logger.error('Failed to terminate terminal', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to terminate terminal', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -202,10 +203,10 @@ export class TerminalManager implements ITerminalManager {
           error: 'Some terminals are unhealthy',
         };
       }
-    } catch (error) {
+    } catch (err) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: err instanceof Error ? getErrorMessage(err) : 'Unknown error',
       };
     }
   }
@@ -240,8 +241,8 @@ export class TerminalManager implements ITerminalManager {
       });
 
       this.logger.debug('Terminal manager maintenance completed');
-    } catch (error) {
-      this.logger.error('Error during terminal manager maintenance', error);
+    } catch (err) {
+      this.logger.error('Error during terminal manager maintenance', err);
     }
   }
 

@@ -8,6 +8,7 @@ import { ILogger } from '../core/logger.js';
 import { TerminalCommandError } from '../utils/errors.js';
 import { generateId, timeout } from '../utils/helpers.js';
 
+import { getErrorMessage } from '../utils/error-handler.js';
 /**
  * Terminal session wrapper
  */
@@ -56,9 +57,9 @@ export class TerminalSession {
         sessionId: this.id,
         agentId: this.profile.id,
       });
-    } catch (error) {
-      this.logger.error('Failed to initialize terminal session', error);
-      throw error;
+    } catch (err) {
+      this.logger.error('Failed to initialize terminal session', err);
+      throw new Error(getErrorMessage(err));
     }
   }
 
@@ -100,15 +101,15 @@ export class TerminalSession {
       });
 
       return result;
-    } catch (error) {
+    } catch (err) {
       this.logger.error('Command execution failed', { 
         sessionId: this.id,
         command,
-        error,
+        err,
       });
       throw new TerminalCommandError('Command execution failed', { 
         command,
-        error,
+        err,
       });
     }
   }
@@ -119,10 +120,10 @@ export class TerminalSession {
     try {
       // Run cleanup commands
       await this.runCleanupCommands();
-    } catch (error) {
+    } catch (err) {
       this.logger.warn('Error during session cleanup', { 
         sessionId: this.id,
-        error,
+        err,
       });
     }
   }
@@ -210,8 +211,8 @@ export class TerminalSession {
       }
 
       this.lastCommandTime = new Date();
-    } catch (error) {
-      throw new Error(`Health check failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err) {
+      throw new Error(`Health check failed: ${err instanceof Error ? getErrorMessage(err) : getErrorMessage(err)}`);
     }
   }
 
@@ -242,8 +243,8 @@ export class TerminalSession {
     this.outputListeners.forEach(listener => {
       try {
         listener(output);
-      } catch (error) {
-        this.logger.error('Error in output listener', { sessionId: this.id, error });
+      } catch (err) {
+        this.logger.error('Error in output listener', { sessionId: this.id, err });
       }
     });
   }
