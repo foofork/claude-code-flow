@@ -17,14 +17,14 @@
 
 > **🚧 IN DEV - TYPESCRIPT REFACTORING IN PROGRESS 🚧**
 > 
-> This project is currently undergoing a **major TypeScript refactoring** to improve type safety, maintainability, and developer experience. 
+> This is a development fork currently undergoing a **major TypeScript refactoring** to improve type safety, maintainability, and developer experience. 
 > 
-> - **Current Status**: Active development - expect frequent updates
+> - **Current Status**: Active development - expect frequent updates and breaking changes
 > - **What's Changing**: Full TypeScript migration, improved architecture, enhanced type definitions
-> - **Stability**: Core functionality remains stable, but internal APIs may change
-> - **Recommendation**: For production use, pin to a specific version
+> - **Stability**: This fork is unstable and not recommended for use
+> - **Recommendation**: Please use the original repository instead: [ruvnet/claude-code-flow](https://github.com/ruvnet/claude-code-flow)
 > 
-> Follow the progress and contribute to the refactoring effort on [GitHub](https://github.com/ruvnet/claude-code-flow)!
+> This fork is for experimental TypeScript refactoring only. For stable usage, please refer to the parent repository!
 
 ---
 
