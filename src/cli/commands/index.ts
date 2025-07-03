@@ -14,6 +14,7 @@ import { SimpleMemoryManager } from "./memory.js";
 import { sparcAction } from "./sparc.js";
 import { createMigrateCommand } from "./migrate.js";
 import { enterpriseCommands } from "./enterprise.js";
+import { commanderToCliCore } from "../adapters/command-adapters.js";
 
 // Import enhanced orchestration commands
 import { startCommand } from "./start.js";
@@ -1333,7 +1334,7 @@ Now, please proceed with the task: ${task}`;
         info("Starting enhanced monitoring dashboard...");
         console.log("Press Ctrl+C to exit");
         
-        const interval = options.interval * 1000;
+        const interval = (Number(options.interval) || 5) * 1000;
         let running = true;
         
         const cleanup = () => {
@@ -1373,7 +1374,8 @@ Now, please proceed with the task: ${task}`;
             console.log("\n📊 System Overview:");
             const cpuUsage = Math.random() * 100;
             const memoryUsage = Math.random() * 1000;
-            const cpuColor = cpuUsage > options.threshold ? '🔴' : cpuUsage > options.threshold * 0.8 ? '🟡' : '🟢';
+            const threshold = Number(options.threshold) || 80;
+            const cpuColor = cpuUsage > threshold ? '🔴' : cpuUsage > threshold * 0.8 ? '🟡' : '🟢';
             const memoryColor = memoryUsage > 800 ? '🔴' : memoryUsage > 600 ? '🟡' : '🟢';
             
             console.log(`   ${cpuColor} CPU: ${cpuUsage.toFixed(1)}%`);
@@ -1687,7 +1689,7 @@ Now, please proceed with the task: ${task}`;
 
   // Migration command
   const migrateCmd = createMigrateCommand();
-  cli.command(migrateCmd);
+  cli.command(commanderToCliCore(migrateCmd));
 
   // Swarm UI command (convenience wrapper)
   cli.command({

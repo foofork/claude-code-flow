@@ -110,8 +110,8 @@ export class AdvancedTaskExecutor extends EventEmitter {
 
   private setupEventHandlers(): void {
     // Handle process events
-    process.on('SIGTERM', () => this.gracefulShutdown());
-    process.on('SIGINT', () => this.gracefulShutdown());
+    process.on('SIGTERM', () => { this.gracefulShutdown().catch(console.error); });
+    process.on('SIGINT', () => { this.gracefulShutdown().catch(console.error); });
 
     // Handle circuit breaker events
     this.eventBus.on('circuitbreaker:state-change', (event) => {
@@ -395,7 +395,12 @@ export class AdvancedTaskExecutor extends EventEmitter {
           completeness: output.completeness || 1.0,
           accuracy: output.accuracy || 0.9,
           executionTime,
-          resourcesUsed: context.resources,
+          resourcesUsed: {
+            memory: context.resources.memory,
+            cpu: context.resources.cpu,
+            disk: context.resources.disk,
+            network: context.resources.network
+          },
           validated: false
         };
       } catch (err) {
@@ -407,7 +412,12 @@ export class AdvancedTaskExecutor extends EventEmitter {
           completeness: 1.0,
           accuracy: 0.7,
           executionTime,
-          resourcesUsed: context.resources,
+          resourcesUsed: {
+            memory: context.resources.memory,
+            cpu: context.resources.cpu,
+            disk: context.resources.disk,
+            network: context.resources.network
+          },
           validated: false
         };
       }
@@ -608,7 +618,11 @@ export class AdvancedTaskExecutor extends EventEmitter {
     queuedTasks: number;
     maxConcurrentTasks: number;
     totalCapacity: number;
-    resourceLimits: typeof this.config.resourceLimits;
+    resourceLimits: {
+      memory: number;
+      cpu: number;
+      disk: number;
+    };
     circuitBreakers: Record<string, any>;
   } {
     return {

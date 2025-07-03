@@ -321,7 +321,7 @@ export class DistributedMemorySystem extends EventEmitter {
     key: string,
     value: any,
     options: {
-      type?: string;
+      type?: MemoryType;
       tags?: string[];
       owner?: AgentId;
       accessLevel?: AccessLevel;
@@ -358,7 +358,7 @@ export class DistributedMemorySystem extends EventEmitter {
         id: entryId,
         key,
         value: await this.processValue(value, partition),
-        type: options.type || 'data',
+        type: options.type || 'knowledge',
         tags: options.tags || [],
         owner: options.owner || { id: 'system', swarmId: '', type: 'coordinator', instance: 0 },
         accessLevel: options.accessLevel || 'swarm',

@@ -18,14 +18,19 @@ export { OptimizedExecutor } from './optimized-executor.js';
 export type { ExecutorConfig, ExecutionMetrics } from './optimized-executor.js';
 
 // Re-export commonly used together
-export const createOptimizedSwarmStack = (config?: {
+export const createOptimizedSwarmStack = async (config?: {
   connectionPool?: any;
   executor?: any;
   fileManager?: any;
 }) => {
-  const connectionPool = new ClaudeConnectionPool(config?.connectionPool);
-  const fileManager = new AsyncFileManager(config?.fileManager);
-  const executor = new OptimizedExecutor({
+  // Dynamically import classes to avoid circular dependencies
+  const { ClaudeConnectionPool: ConnectionPoolClass } = await import('./connection-pool.js');
+  const { AsyncFileManager: FileManagerClass } = await import('./async-file-manager.js');
+  const { OptimizedExecutor: ExecutorClass } = await import('./optimized-executor.js');
+  
+  const connectionPool = new ConnectionPoolClass(config?.connectionPool);
+  const fileManager = new FileManagerClass(config?.fileManager);
+  const executor = new ExecutorClass({
     ...config?.executor,
     connectionPool: config?.connectionPool,
     fileOperations: config?.fileManager

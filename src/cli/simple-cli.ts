@@ -518,7 +518,7 @@ async function createProgram() {
       
       // List registered commands
       output += '\n' + chalk.yellow('Registered Commands:') + '\n';
-      const commands = cmd.commands.filter(c => !c._hidden);
+      const commands = cmd.commands.filter((c: any) => !c._hidden);
       const maxCmdLength = Math.max(...commands.map(c => c.name().length));
       
       commands.forEach(subcmd => {
@@ -2446,9 +2446,9 @@ Follow the red-green-refactor cycle strictly.`;
       const aspects = options.aspects.split(',');
       
       console.log('\n📊 Analysis Results:');
-      models.forEach(model => {
+      models.forEach((model: string) => {
         console.log(`\n🧠 ${model}:`);
-        aspects.forEach(aspect => {
+        aspects.forEach((aspect: string) => {
           const score = Math.random() * 100;
           console.log(`  • ${aspect}: ${score.toFixed(1)}%`);
         });
@@ -2476,7 +2476,7 @@ Follow the red-green-refactor cycle strictly.`;
       const models = options.models.split(',');
       
       console.log('\n📊 Model Comparison Results:');
-      models.forEach((model, index) => {
+      models.forEach((model: string, index: number) => {
         console.log(`\n🧠 ${model}:`);
         console.log(`  Response length: ${Math.floor(Math.random() * 1000) + 500} tokens`);
         console.log(`  Response time: ${Math.floor(Math.random() * 5) + 2}s`);

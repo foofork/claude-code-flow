@@ -107,13 +107,13 @@ export class DirectTaskExecutor {
         return this.executeAnalyzerTask(task, targetDir);
       
       case 'developer':
-        if (isRestAPI) return this.createRestAPI(targetDir, task);
-        if (isTodo) return this.createTodoApp(targetDir, task);
-        if (isChat) return this.createChatApp(targetDir, task);
-        if (isAuth) return this.createAuthService(targetDir, task);
-        if (isHelloWorld) return this.createHelloWorld(targetDir, task);
-        if (isCalculator) return this.createCalculator(targetDir, task);
-        return this.createGenericApp(targetDir, task);
+        if (isRestAPI) return this.createRestAPI(targetDir || '', task);
+        if (isTodo) return this.createTodoApp(targetDir || '', task);
+        if (isChat) return this.createChatApp(targetDir || '', task);
+        if (isAuth) return this.createAuthService(targetDir || '', task);
+        if (isHelloWorld) return this.createHelloWorld(targetDir || '', task);
+        if (isCalculator) return this.createCalculator(targetDir || '', task);
+        return this.createGenericApp(targetDir || '', task);
       
       case 'tester':
         return this.executeTestingTask(task, targetDir);

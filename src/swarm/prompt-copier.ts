@@ -97,6 +97,7 @@ export class PromptCopier extends EventEmitter {
           copiedFiles: 0,
           failedFiles: 0,
           skippedFiles: 0,
+          errors: [],
           duration: Date.now() - startTime
         };
       }

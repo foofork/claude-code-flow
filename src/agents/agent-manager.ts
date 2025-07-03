@@ -516,7 +516,7 @@ export class AgentManager extends EventEmitter {
       this.emit('agent:started', { agent });
 
     } catch (err) {
-      agent.status = 'err';
+      agent.status = 'error';
       this.addAgentError(agentId, {
         timestamp: new Date(),
         type: 'startup_failed',

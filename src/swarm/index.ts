@@ -14,8 +14,20 @@ export * from './prompt-utils';
 export * from './prompt-manager';
 export * from './prompt-cli';
 
-// Optimizations
-export * from './optimizations';
+// Optimizations - selective exports to avoid conflicts
+export { 
+  ClaudeConnectionPool,
+  AsyncFileManager,
+  CircularBuffer,
+  TTLMap,
+  OptimizedExecutor,
+  createOptimizedSwarmStack,
+  type PoolConfig,
+  type PooledConnection,
+  type FileOperationResult,
+  type TTLMapOptions,
+  type ExecutorConfig
+} from './optimizations';
 
 // Utility function to get all exports
 export function getSwarmComponents() {

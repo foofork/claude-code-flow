@@ -7,7 +7,7 @@ import * as path from 'node:path';
 import { ValidationResult, ValidationCheck } from './types';
 import { logger } from './logger';
 import chalk from 'chalk';
-import { glob } from 'glob';
+import glob from 'glob';
 
 import { getErrorMessage } from '../utils/error-handler.js';
 export class MigrationValidator {
@@ -215,7 +215,9 @@ export class MigrationValidator {
     // Check for corrupted files
     const claudePath = path.join(projectPath, '.claude');
     if (await fs.pathExists(claudePath)) {
-      const files = await glob('**/*.md', { cwd: claudePath });
+      // Use glob sync version for now to avoid promise issues
+      const { sync } = await import('glob');
+      const files = sync('**/*.md', { cwd: claudePath });
       
       for (const file of files) {
         try {

@@ -380,9 +380,9 @@ function startWebUI(host: string, port: number) {
       
       executeCliCommand(command, null);
       
-      res.json({ success: true, message: 'Command executed' });
+      return res.json({ success: true, message: 'Command executed' });
     } catch (err) {
-      res.status(500).json({ error: getErrorMessage(err) });
+      return res.status(500).json({ error: getErrorMessage(err) });
     }
   });
   

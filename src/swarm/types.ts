@@ -700,7 +700,12 @@ export type MemoryType =
   | 'results'         // Task results
   | 'communication'   // Communication history
   | 'configuration'   // Configuration data
-  | 'metrics';        // Performance metrics
+  | 'metrics'         // Performance metrics
+  | 'agent-state'     // Agent state storage
+  | 'agent-registry'  // Agent registry storage
+  | 'agent-archive'   // Agent archive storage
+  | 'agent-coordination' // Agent coordination data
+  | 'monitoring-export'; // Monitoring export data
 
 export interface MemoryEntry {
   id: string;
@@ -708,7 +713,7 @@ export interface MemoryEntry {
   value: any;
   
   // Metadata
-  type: string;
+  type: MemoryType;
   tags: string[];
   
   // Ownership

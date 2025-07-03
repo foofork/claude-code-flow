@@ -8,7 +8,7 @@ import * as crypto from 'node:crypto';
 import { MigrationBackup, BackupFile } from './types';
 import { logger } from './logger';
 import chalk from 'chalk';
-import * as inquirer from 'inquirer';
+import inquirer from 'inquirer';
 
 import { getErrorMessage } from '../utils/error-handler.js';
 export class RollbackManager {
@@ -143,7 +143,7 @@ export class RollbackManager {
       throw new Error('No backups found');
     }
 
-    let selectedBackup: MigrationBackup;
+    let selectedBackup: MigrationBackup | undefined;
 
     if (backupId) {
       selectedBackup = backups.find(b => b.metadata.backupId === backupId);
@@ -154,6 +154,10 @@ export class RollbackManager {
       selectedBackup = await this.selectBackupInteractively(backups);
     } else {
       selectedBackup = backups[0]; // Most recent
+    }
+
+    if (!selectedBackup) {
+      throw new Error('No backup selected');
     }
 
     logger.info(`Rolling back to backup from ${selectedBackup.timestamp.toISOString()}...`);

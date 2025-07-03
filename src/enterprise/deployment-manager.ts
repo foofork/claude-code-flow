@@ -538,7 +538,7 @@ export class DeploymentManager extends EventEmitter {
       stage.status = 'failed';
       stage.endTime = new Date();
       
-      this.addLog(stage, 'err', `Stage failed: ${getErrorMessage(err)}`, 'system');
+      this.addLog(stage, 'error', `Stage failed: ${getErrorMessage(err)}`, 'system');
       
       // Retry logic
       if (stage.retryPolicy.maxRetries > 0) {

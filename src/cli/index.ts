@@ -12,7 +12,7 @@ import { colors } from '@cliffy/ansi/colors';
 import { logger } from '../core/logger.js';
 import { configManager } from '../core/config.js';
 import { startCommand } from './commands/start.js';
-import { agentCommand } from './commands/agent.js';
+import { agentCommand as agentCommandCommander } from './commands/agent.js';
 import { taskCommand } from './commands/task.js';
 import { memoryCommand } from './commands/memory.js';
 import { configCommand } from './commands/config.js';
@@ -26,6 +26,7 @@ import { formatError, displayBanner, displayVersion } from './formatter.js';
 import { getErrorMessage } from '../utils/error-handler.js';
 import { startREPL } from './repl.js';
 import { CompletionGenerator } from './completion.js';
+import { commanderToCliffy } from './adapters/command-adapters.js';
 
 // Version information
 const VERSION = '1.0.71';
@@ -64,7 +65,7 @@ const cli = new Command()
 // Add subcommands
 cli
   .command('start', startCommand)
-  .command('agent', agentCommand)
+  .command('agent', commanderToCliffy(agentCommandCommander))
   .command('task', taskCommand)
   .command('memory', memoryCommand)
   .command('config', configCommand)

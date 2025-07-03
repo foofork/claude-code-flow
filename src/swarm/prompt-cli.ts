@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import * as path from 'node:path';
-import { copyPrompts } from './prompt-copier';
+import { copyPrompts, type CopyOptions, type CopyProgress } from './prompt-copier';
 import { copyPromptsEnhanced } from './prompt-copier-enhanced';
 import { 
   PromptConfigManager, 
@@ -42,7 +42,7 @@ program
       const configManager = new PromptConfigManager();
       const config = await configManager.loadConfig();
       
-      let copyOptions;
+      let copyOptions: CopyOptions;
       
       if (options.profile) {
         const profileOptions = configManager.getProfile(options.profile);
@@ -69,7 +69,7 @@ program
       // Create progress bar
       let progressBar: ReturnType<typeof createProgressBar> | null = null;
       
-      copyOptions.progressCallback = (progress) => {
+      copyOptions.progressCallback = (progress: CopyProgress) => {
         if (!progressBar) {
           progressBar = createProgressBar(progress.total);
         }

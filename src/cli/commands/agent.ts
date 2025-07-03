@@ -839,11 +839,13 @@ function displayHealthDashboard(manager: AgentManager, threshold: number, specif
   console.log(`Total Agents: ${stats.totalAgents} | Active: ${stats.activeAgents} | Healthy: ${stats.healthyAgents}`);
   console.log(`Average Health: ${formatPercentage(stats.averageHealth)}`);
   
-  const unhealthyAgents = agents.filter(a => a.health < threshold);
+  const unhealthyAgents = agents.filter(a => a && typeof a.health === 'number' && a.health < threshold);
   if (unhealthyAgents.length > 0) {
     console.log(chalk.red(`\n⚠️  ${unhealthyAgents.length} agents below health threshold:`));
     unhealthyAgents.forEach(agent => {
-      console.log(`  ${agent.name}: ${getHealthDisplay(agent.health)}`);
+      if (agent && agent.name && typeof agent.health === 'number') {
+        console.log(`  ${agent.name}: ${getHealthDisplay(agent.health)}`);
+      }
     });
   }
   

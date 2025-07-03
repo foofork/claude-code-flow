@@ -60,7 +60,7 @@ export interface DashboardWidget {
     groupBy: string[];
   };
   visualization: {
-    chartType?: 'line' | 'bar' | 'pie' | 'scatter' | 'heatmap' | 'area';
+    chartType?: 'line' | 'bar' | 'pie' | 'scatter' | 'heatmap' | 'area' | 'gauge';
     options: Record<string, any>;
     thresholds?: {
       warning: number;
@@ -672,7 +672,7 @@ export class AnalyticsManager extends EventEmitter {
       this.logger.info(`Predictive model trained: ${model.name} (${model.id}) - Accuracy: ${model.accuracy}%`);
 
     } catch (err) {
-      model.status = 'err';
+      model.status = 'error';
       this.logger.error(`Model training failed: ${model.name}`, { error: getErrorMessage(err) });
       throw err;
     }
@@ -1228,7 +1228,7 @@ export class AnalyticsManager extends EventEmitter {
         title: `Anomaly detected in ${metric.name}`,
         description: `The metric ${metric.name} has deviated significantly from its normal pattern`,
         type: 'anomaly',
-        category: metric.category,
+        category: this.mapMetricCategoryToInsightCategory(metric.category),
         confidence: Math.min(95, deviation * 20),
         impact: deviation > 3 ? 'high' : 'medium',
         priority: deviation > 3 ? 'high' : 'medium',
@@ -1265,6 +1265,24 @@ export class AnalyticsManager extends EventEmitter {
         average, 
         deviation 
       });
+    }
+  }
+
+  private mapMetricCategoryToInsightCategory(
+    metricCategory: AnalyticsMetric['category']
+  ): AnalyticsInsight['category'] {
+    // Map metric categories to insight categories
+    switch (metricCategory) {
+      case 'performance':
+      case 'usage':
+      case 'cost':
+      case 'security':
+        return metricCategory; // These are the same in both types
+      case 'business':
+      case 'technical':
+        return 'performance'; // Map business/technical to performance
+      default:
+        return 'performance'; // Default to performance
     }
   }
 

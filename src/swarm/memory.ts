@@ -843,7 +843,12 @@ export class SwarmMemoryManager extends EventEmitter {
       results: 0,
       communication: 0,
       configuration: 0,
-      metrics: 0
+      metrics: 0,
+      'agent-state': 0,
+      'agent-registry': 0,
+      'agent-archive': 0,
+      'agent-coordination': 0,
+      'monitoring-export': 0
     };
 
     const entriesByAccess: Record<AccessLevel, number> = {
@@ -860,8 +865,12 @@ export class SwarmMemoryManager extends EventEmitter {
     let expiringEntries = 0;
 
     for (const entry of validEntries) {
-      entriesByType[entry.type]++;
-      entriesByAccess[entry.accessLevel]++;
+      if (entry.type && entry.type in entriesByType) {
+        entriesByType[entry.type]++;
+      }
+      if (entry.accessLevel && entry.accessLevel in entriesByAccess) {
+        entriesByAccess[entry.accessLevel]++;
+      }
       
       const entrySize = this.calculateEntrySize(entry);
       totalSize += entrySize;
@@ -1329,7 +1338,9 @@ class MemoryCache {
     // Evict if at capacity
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
     }
     
     this.cache.set(key, {

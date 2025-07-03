@@ -8,7 +8,7 @@ import * as crypto from 'node:crypto';
 import { MigrationAnalysis, MigrationRisk } from './types';
 import { logger } from './logger';
 import chalk from 'chalk';
-import { glob } from 'glob';
+import glob from 'glob';
 
 import { getErrorMessage } from '../utils/error-handler.js';
 export class MigrationAnalyzer {
@@ -61,7 +61,9 @@ export class MigrationAnalyzer {
     const commandsPath = path.join(claudePath, 'commands');
     
     if (await fs.pathExists(commandsPath)) {
-      const files = await glob('**/*.md', { cwd: commandsPath });
+      // Use glob sync version for now to avoid promise issues
+      const { sync } = await import('glob');
+      const files = sync('**/*.md', { cwd: commandsPath });
       
       for (const file of files) {
         const commandName = path.basename(file, '.md');

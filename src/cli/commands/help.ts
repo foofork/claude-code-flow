@@ -798,7 +798,7 @@ async function startInteractiveHelp(): Promise<void> {
       options: categories,
     });
     
-    const choice = typeof result === 'string' ? result : result.value;
+    const choice = typeof result === 'string' ? result : (result as any).value || result;
     
     if (choice === 'exit') {
       console.log(colors.gray('Goodbye!'));

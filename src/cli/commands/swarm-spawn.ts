@@ -37,11 +37,14 @@ export async function spawnSwarmAgent(swarmId: string, agentType: string, task: 
   }
   
   const agentId = `${swarmId}-agent-${Date.now()}`;
-  swarm.agents.push({
+  const agent: Agent = {
     id: agentId,
     type: agentType,
     status: 'active',
-  });
+    name: `${agentType}-${agentId.slice(-6)}`,
+    task: task
+  };
+  swarm.agents.set(agentId, agent);
   
   // In a real implementation, this would spawn actual Claude instances
   console.log(`[SWARM] Spawned ${agentType} agent: ${agentId}`);
@@ -64,8 +67,9 @@ export async function monitorSwarm(swarmId: string): Promise<void> {
       return;
     }
     
-    console.log(`[MONITOR] Swarm ${swarmId} - Agents: ${swarm.agents.length}`);
-    console.log(`[MONITOR] Active: ${swarm.agents.filter(a => a.status === 'active').length}`);
+    console.log(`[MONITOR] Swarm ${swarmId} - Agents: ${swarm.agents.size}`);
+    const activeCount = Array.from(swarm.agents.values()).filter(a => a.status === 'active').length;
+    console.log(`[MONITOR] Active: ${activeCount}`);
   }, 5000);
   
   // Stop monitoring after timeout

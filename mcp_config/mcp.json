@@ -55,6 +55,19 @@
       "capabilities": {
         "tools": true
       }
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {},
+      "capabilities": {
+        "tools": true,
+        "resources": false
+      },
+      "description": "Fetches up-to-date, version-specific documentation and code examples directly from official sources. Uses two-step process: 'resolve-library-id' to find library IDs, then 'get-library-docs' to fetch documentation with optional topic filtering."
     }
   },
   "globalSettings": {

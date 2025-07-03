@@ -458,7 +458,7 @@ export class CloudManager extends EventEmitter {
       await this.validateProviderCredentials(provider);
       provider.status = 'active';
     } catch (err) {
-      provider.status = 'err';
+      provider.status = 'error';
       this.logger.warn(`Provider credentials validation failed: ${provider.name}`, { error: getErrorMessage(err) });
     }
 
@@ -1096,7 +1096,20 @@ export class CloudManager extends EventEmitter {
       if (!Array.from(this.providers.values()).some(p => p.name === providerData.name)) {
         const provider: CloudProvider = {
           id: `provider-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: providerData.name,
+          type: providerData.type,
           credentials: {},
+          configuration: {
+            defaultRegion: providerData.configuration.defaultRegion,
+            availableRegions: providerData.configuration.availableRegions,
+            services: providerData.configuration.services,
+            endpoints: Object.fromEntries(
+              Object.entries(providerData.configuration.endpoints || {})
+                .filter(([_, value]) => value !== undefined)
+                .map(([key, value]) => [key, value as string])
+            ),
+            features: providerData.configuration.features
+          },
           status: 'inactive',
           quotas: {
             computeInstances: 20,
@@ -1104,9 +1117,9 @@ export class CloudManager extends EventEmitter {
             bandwidth: 1000,
             requests: 1000000
           },
+          pricing: providerData.pricing,
           createdAt: new Date(),
-          updatedAt: new Date(),
-          ...providerData
+          updatedAt: new Date()
         };
 
         this.providers.set(provider.id, provider);
@@ -1230,7 +1243,7 @@ export class CloudManager extends EventEmitter {
       this.logger.info(`Resource provisioned successfully: ${resource.name}`);
       
     } catch (err) {
-      resource.status = 'err';
+      resource.status = 'error';
       resource.updatedAt = new Date();
       await this.saveResource(resource);
       

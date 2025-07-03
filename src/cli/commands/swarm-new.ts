@@ -651,11 +651,11 @@ Objective: ${initialObjective?.name || 'Unknown'}
 Status: ${initialObjective?.status || 'Unknown'}
 
 Tasks: ${initialStatus.tasks.completed}/${initialStatus.tasks.total} completed
-- In Progress: ${initialStatus.tasks.inProgress}
-- Pending: ${initialStatus.tasks.pending}
+- In Progress: ${initialTasks.filter(t => t.status === 'running').length}
+- Pending: ${initialTasks.filter(t => t.status === 'queued').length}
 - Failed: ${initialStatus.tasks.failed}
 
-Agents: ${initialStatus.agents.active}/${initialStatus.agents.total} active
+Agents: ${initialAgents.filter(a => a.status === 'busy' || a.status === 'idle').length}/${initialStatus.agents.total} active
 `;
     await Deno.writeTextFile(`${swarmDir}/progress.txt`, initialProgressText);
   } catch (err) {

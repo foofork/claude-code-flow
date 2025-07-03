@@ -56,6 +56,19 @@ Available SPARC modes: orchestrator, coder, researcher, tdd, architect, reviewer
 - `./claude-flow mcp status`: Show MCP server status
 - `./claude-flow mcp tools`: List available MCP tools
 
+### Context7 Integration
+The researcher agent automatically uses Context7 MCP server (@upstash/context7-mcp) for:
+- Version-specific documentation (e.g., "React 18 hooks documentation")
+- API references and official guides
+- Best practices from official sources
+- Code examples from authoritative sources
+
+Context7 uses a two-step process:
+1. `resolve-library-id`: Finds the library ID from name (e.g., "react" → "/facebook/react")
+2. `get-library-docs`: Fetches documentation with optional topic filtering
+
+Context7 is triggered when queries mention supported technologies (React, Node.js, TypeScript, etc.) with documentation-related keywords.
+
 ### Claude Integration
 - `./claude-flow claude auth`: Authenticate with Claude API
 - `./claude-flow claude models`: List available Claude models

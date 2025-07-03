@@ -18,8 +18,8 @@ import { MigrationAnalyzer } from './migration-analyzer';
 import { logger } from './logger';
 import { ProgressReporter } from './progress-reporter';
 import { MigrationValidator } from './migration-validator';
-import { glob } from 'glob';
-import * as inquirer from 'inquirer';
+import glob from 'glob';
+import inquirer from 'inquirer';
 import chalk from 'chalk';
 
 import { getErrorMessage } from '../utils/error-handler.js';
@@ -157,7 +157,7 @@ export class MigrationRunner {
     await fs.ensureDir(commandsTarget);
 
     // Copy optimized commands
-    for (const command of this.manifest.files.commands) {
+    for (const [key, command] of Object.entries(this.manifest.files.commands)) {
       const sourceFile = path.join(commandsSource, command.source);
       const targetFile = path.join(commandsTarget, command.target);
 
@@ -307,7 +307,9 @@ export class MigrationRunner {
       await fs.copy(claudePath, path.join(backupPath, '.claude'));
       
       // Record backed up files
-      const files = await glob('**/*', { cwd: claudePath, nodir: true });
+      // Use glob sync version for now to avoid promise issues
+      const { sync } = await import('glob');
+      const files = sync('**/*', { cwd: claudePath, nodir: true });
       for (const file of files) {
         const content = await fs.readFile(path.join(claudePath, file), 'utf-8');
         backup.files.push({
@@ -441,7 +443,7 @@ export class MigrationRunner {
   }
 
   private async confirmMigration(analysis: any): Promise<boolean> {
-    const questions = [
+    const questions: any[] = [
       {
         type: 'confirm',
         name: 'proceed',
@@ -459,7 +461,7 @@ export class MigrationRunner {
       });
     }
 
-    const answers = await inquirer.prompt(questions);
+    const answers = await inquirer.prompt(questions as any);
     
     if (answers.preserveCustom) {
       this.options.preserveCustom = true;
@@ -473,15 +475,15 @@ export class MigrationRunner {
     return {
       version: '1.0.0',
       files: {
-        commands: [
-          { source: 'sparc.md', target: 'sparc.md' },
-          { source: 'sparc/architect.md', target: 'sparc-architect.md' },
-          { source: 'sparc/code.md', target: 'sparc-code.md' },
-          { source: 'sparc/tdd.md', target: 'sparc-tdd.md' },
-          { source: 'claude-flow-help.md', target: 'claude-flow-help.md' },
-          { source: 'claude-flow-memory.md', target: 'claude-flow-memory.md' },
-          { source: 'claude-flow-swarm.md', target: 'claude-flow-swarm.md' }
-        ],
+        commands: {
+          'sparc': { source: 'sparc.md', target: 'sparc.md' },
+          'sparc-architect': { source: 'sparc/architect.md', target: 'sparc-architect.md' },
+          'sparc-code': { source: 'sparc/code.md', target: 'sparc-code.md' },
+          'sparc-tdd': { source: 'sparc/tdd.md', target: 'sparc-tdd.md' },
+          'claude-flow-help': { source: 'claude-flow-help.md', target: 'claude-flow-help.md' },
+          'claude-flow-memory': { source: 'claude-flow-memory.md', target: 'claude-flow-memory.md' },
+          'claude-flow-swarm': { source: 'claude-flow-swarm.md', target: 'claude-flow-swarm.md' }
+        },
         configurations: {},
         templates: {}
       }

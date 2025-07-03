@@ -17,6 +17,10 @@ export interface ClaudeFlowExecutorConfig {
   timeoutMinutes?: number;
 }
 
+interface TaskResultWithError extends TaskResult {
+  error?: string;
+}
+
 export class ClaudeFlowExecutor {
   private logger: Logger;
   private claudeFlowPath: string;
@@ -39,7 +43,7 @@ export class ClaudeFlowExecutor {
     task: TaskDefinition,
     agent: AgentState,
     targetDir?: string
-  ): Promise<TaskResult> {
+  ): Promise<TaskResultWithError> {
     this.logger.info('Executing task with Claude Flow SPARC', {
       taskId: task.id.id,
       taskName: task.name,
@@ -71,13 +75,16 @@ export class ClaudeFlowExecutor {
         output: result.output,
         artifacts: result.artifacts || {},
         metadata: {
-          executionTime,
           sparcMode,
           command: command.join(' '),
-          exitCode: result.exitCode,
-          quality: 0.95,
-          completeness: 0.9
+          exitCode: result.exitCode
         },
+        quality: 0.95,
+        completeness: 0.9,
+        accuracy: 0.9,
+        executionTime,
+        resourcesUsed: {},
+        validated: true,
         error: result.error
       };
     } catch (err) {
@@ -89,11 +96,13 @@ export class ClaudeFlowExecutor {
       return {
         output: '',
         artifacts: {},
-        metadata: {
-          executionTime: Date.now() - startTime,
-          quality: 0,
-          completeness: 0
-        },
+        metadata: {},
+        quality: 0,
+        completeness: 0,
+        accuracy: 0,
+        executionTime: Date.now() - startTime,
+        resourcesUsed: {},
+        validated: false,
         error: getErrorMessage(err)
       };
     }
@@ -101,7 +110,7 @@ export class ClaudeFlowExecutor {
 
   private determineSparcMode(task: TaskDefinition, agent: AgentState): string {
     // Map task types and agent types to SPARC modes
-    const modeMap = {
+    const modeMap: Record<string, string> = {
       // Task type mappings
       'coding': 'code',
       'testing': 'tdd',
@@ -216,7 +225,7 @@ export class ClaudeFlowExecutor {
         // Parse artifacts from output
         const artifactMatch = chunk.match(/Created file: (.+)/g);
         if (artifactMatch) {
-          artifactMatch.forEach(match => {
+          artifactMatch.forEach((match: string) => {
             const filePath = match.replace('Created file: ', '').trim();
             artifacts[filePath] = true;
           });

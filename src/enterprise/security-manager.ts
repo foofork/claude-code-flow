@@ -1165,7 +1165,7 @@ export class SecurityManager extends EventEmitter {
           remediation: {
             description: vuln.recommendation || 'Update to a secure version',
             effort: 'low' as const,
-            priority: vuln.severity as SecuritySeverity,
+            priority: (vuln.severity === 'info' ? 'low' : vuln.severity) as 'low' | 'medium' | 'high' | 'critical',
             autoFixable: true,
             steps: [`npm update ${packageName}`],
             references: vuln.url ? [vuln.url] : []

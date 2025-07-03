@@ -13,7 +13,7 @@ import {
   SWARM_CONSTANTS
 } from './types.js';
 import { AutoStrategy } from './strategies/auto.js';
-import { getErrorMessage, isError } from './utils/error-handler.js';
+import { getErrorMessage, isError } from '../utils/error-handler.js';
 
 export class SwarmCoordinator extends EventEmitter implements SwarmEventEmitter {
   private logger: Logger;
@@ -551,7 +551,7 @@ export class SwarmCoordinator extends EventEmitter implements SwarmEventEmitter 
       agent.status = 'terminated';
       
     } catch (err) {
-      agent.status = 'err';
+      agent.status = 'error';
       this.logger.error('Error stopping agent', { agentId, err });
     }
   }

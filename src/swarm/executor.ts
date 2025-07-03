@@ -77,7 +77,7 @@ export class TaskExecutor extends EventEmitter {
     
     this.config = this.mergeWithDefaults(config);
     this.logger = new Logger(
-      { level: this.config.logLevel || 'info', format: 'text', destination: 'console' },
+      { level: (this.config.logLevel || 'info') as 'debug' | 'info' | 'warn' | 'error', format: 'text', destination: 'console' },
       { component: 'TaskExecutor' }
     );
     this.resourceMonitor = new ResourceMonitor();

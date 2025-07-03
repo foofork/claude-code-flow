@@ -488,10 +488,10 @@ export const enterpriseCommands: Command[] = [
                     secrets: {},
                     environment_variables: {},
                     resources: {
-                      compute: [] as any[],
-                      storage: [] as any[],
-                      network: [] as any[],
-                      database: [] as any[]
+                      cpu: ctx.flags.cpu as string || '2',
+                      memory: ctx.flags.memory as string || '4Gi',
+                      storage: ctx.flags.storage as string || '20Gi',
+                      replicas: parseInt(ctx.flags.replicas as string) || 1
                     }
                   }
                 });

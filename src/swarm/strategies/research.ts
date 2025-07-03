@@ -14,7 +14,7 @@ import {
 
 import { getErrorMessage } from '../../utils/error-handler.js';
 // Research-specific interfaces
-interface ResearchQuery {
+export interface ResearchQuery {
   id: string;
   query: string;
   keywords: string[];
@@ -33,7 +33,7 @@ interface ResearchFilters {
   maxResults?: number;
 }
 
-interface ResearchResult {
+export interface ResearchResult {
   id: string;
   queryId: string;
   url: string;

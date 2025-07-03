@@ -205,9 +205,11 @@ export const configCommand = new Command()
           }
         } else {
           console.error(colors.red('✗'), 'Configuration validation failed:');
-          result.errors.forEach((error: string) => {
-            console.error(colors.red(`  • ${error}`));
-          });
+          if (result.errors && Array.isArray(result.errors)) {
+            result.errors.forEach((error: string) => {
+              console.error(colors.red(`  • ${error}`));
+            });
+          }
           Deno.exit(1);
         }
       } catch (err) {

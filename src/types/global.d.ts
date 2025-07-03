@@ -273,6 +273,14 @@ declare global {
       Deno?: typeof Deno;
     }
   }
+  
+  /**
+   * ImportMeta interface for Deno compatibility
+   */
+  interface ImportMeta {
+    main?: boolean;
+    url: string;
+  }
 }
 
 export {};

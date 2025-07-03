@@ -164,7 +164,7 @@ export class PromptManager extends EventEmitter {
           copiedFiles: 0,
           failedFiles: 0,
           skippedFiles: 0,
-          errors: [{ file: source, err: getErrorMessage(err), phase: 'read' }],
+          errors: [{ file: source, error: getErrorMessage(err), phase: 'read' }],
           duration: 0
         });
       }

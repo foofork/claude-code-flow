@@ -59,7 +59,7 @@ class CommandHistory {
   private async loadHistory(): Promise<void> {
     try {
       const content = await Deno.readTextFile(this.historyFile);
-      this.history = content.split('\n').filter(line => line.trim());
+      this.history = content.split('\n').filter((line: string) => line.trim());
     } catch {
       // History file doesn't exist yet
     }
@@ -87,6 +87,10 @@ class CommandCompleter {
         }
       }
     }
+  }
+  
+  getAllCommands(): string[] {
+    return Array.from(this.commands.keys());
   }
 
   complete(input: string): string[] {
@@ -381,7 +385,6 @@ export async function startREPL(options: any = {}): Promise<void> {
       const prompt = createPrompt(context);
       const input = await Input.prompt({
         message: prompt,
-        suggestions: (input: string) => completer.complete(input),
       });
 
       if (!input.trim()) {
