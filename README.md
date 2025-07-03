@@ -11,6 +11,23 @@
 
 </div>
 
+---
+
+## ⚠️ **ACTIVE DEVELOPMENT NOTICE**
+
+> **🚧 IN DEV - TYPESCRIPT REFACTORING IN PROGRESS 🚧**
+> 
+> This project is currently undergoing a **major TypeScript refactoring** to improve type safety, maintainability, and developer experience. 
+> 
+> - **Current Status**: Active development - expect frequent updates
+> - **What's Changing**: Full TypeScript migration, improved architecture, enhanced type definitions
+> - **Stability**: Core functionality remains stable, but internal APIs may change
+> - **Recommendation**: For production use, pin to a specific version
+> 
+> Follow the progress and contribute to the refactoring effort on [GitHub](https://github.com/ruvnet/claude-code-flow)!
+
+---
+
 ## 🎯 **Transform Your Development Workflow**
 
 **Claude-Flow** is the ultimate orchestration platform that revolutionizes how you work with Claude Code. Coordinate **multiple AI agents** simultaneously, manage complex workflows, and build sophisticated applications with AI-powered development.
