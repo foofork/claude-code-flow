@@ -18,11 +18,8 @@
 > 
 > This is a stable fork of claude-code-flow with significant enhancements:
 > 
-> - **✅ TypeScript**: Fixed all 85 compilation errors - builds cleanly
-> - **✅ Dependencies**: Removed problematic node-pty, cleaner dependency tree
-> - **✅ Code Quality**: Removed 17,000+ lines of experimental code
+> - **✅ TypeScript**: Fixed typescript and compilation errors - builds cleanly
 > - **✅ Stability**: Production-ready with all core features intact
-> - **✅ Compatibility**: Better cross-platform support (macOS, Linux, Windows)
 > 
 > **Original**: [ruvnet/claude-code-flow](https://github.com/ruvnet/claude-code-flow) (v1.0.72 on npm)
 > **This Fork**: Cleaner, more stable, TypeScript-compliant version
